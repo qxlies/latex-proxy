@@ -217,7 +217,8 @@ async function _createProfileOnBackend(name, tabs = null) {
             { id: uid(), role: 'system', title: 'system prompt', enabled: true, content: 'Insert your system prompt here' },
             { id: uid(), role: 'system', title: 'bot persona', enabled: true, content: '<{{char}}\'s Persona>{bot_persona}<{{char}}\'s Persona>'},
             { id: uid(), role: 'system', title: 'scenario', enabled: true, content: '<Scenario>{scenario}</Scenario>' },
-            { id: uid(), role: 'system', title: 'user persona', enabled: true, 'content': '<User Persona>{user_persona}</User Persona>'}
+            { id: uid(), role: 'system', title: 'user persona', enabled: true, 'content': '<User Persona>{user_persona}</User Persona>'},
+            { id: uid(), role: 'system', title: 'summary', enabled: true, 'content': '<summary>{summary}</summary>'},
         ]
     };
     newProfileData.activeTabId = newProfileData.tabs[0]?.id || null;

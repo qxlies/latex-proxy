@@ -152,10 +152,21 @@ function processPlaceholders(messages) {
     } else {
       placeholder = new RegExp(`{${key}}`, 'g')
     }
-    systemPrompt = systemPrompt.replace(placeholder, placeholders[key])
+    systemPrompt = systemPrompt.replace(placeholder, placeholders[key] || '')
   }
 
-  const newFirstMessage = { ...messages[0], content: systemPrompt }
+  const finalLines = [];
+  const lines = systemPrompt.split('\n');
+  for (const line of lines) {
+    if (line.includes('{summary}') && (!placeholders.summary || placeholders.summary.trim() === '')) {
+      continue;
+    }
+    finalLines.push(line);
+  }
+
+  const finalSystemPrompt = finalLines.join('\n');
+
+  const newFirstMessage = { ...messages[0], content: finalSystemPrompt }
   return [newFirstMessage, ...messages.slice(1)]
 }
 
