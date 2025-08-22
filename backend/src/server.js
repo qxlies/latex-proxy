@@ -101,6 +101,7 @@ function processPlaceholders(messages) {
   const personaRegex = /<([a-zA-Z0-9_ ]+?'s Persona)>([\s\S]*?)<\/\1>/
   const scenarioRegex = /<Scenario>([\s\S]*?)<\/Scenario>/
   const userPersonaRegex = /<UserPersona>([\s\S]*?)<\/UserPersona>/
+  const summaryRegex = /<summary>([\s\S]*?)<\/summary>/
   
   const userName = /<user>([a-zA-Z0-9_ ]+?)<\/user>/
   const characterName = /<character>([a-zA-Z0-9_ ]+?)<\/character>/
@@ -120,6 +121,11 @@ function processPlaceholders(messages) {
     placeholders.user_persona = userPersonaMatch[1].trim()
   }
 
+  const summaryRegexMatch = content.match(summaryRegex)
+  if (summaryRegexMatch) {
+    placeholders.summary = userPersonaMatch[1].trim()
+  }
+
   const userNameMatch = content.match(userName)
   if (userNameMatch) {
     placeholders.user = userNameMatch[1].trim()
@@ -134,6 +140,7 @@ function processPlaceholders(messages) {
     .replace(personaRegex, '')
     .replace(scenarioRegex, '')
     .replace(userPersonaRegex, '')
+    .replace(summaryRegex, '')
     .replace(userName, '')
     .replace(characterName, '')
     .trim()
