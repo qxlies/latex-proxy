@@ -706,3 +706,79 @@ select:focus {
     grid-template-columns: 1fr;
   }
 }
+
+.logs-panel h3 {
+  margin-top: 0;
+}
+
+.log-item {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid var(--border);
+  gap: 12px;
+}
+.log-item:last-child {
+  border-bottom: none;
+}
+
+.log-status {
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 12px;
+}
+.log-status.status-200 {
+  color: #4ade80;
+  background: rgba(74,222,128,.1);
+  border: 1px solid rgba(74,222,128,.3);
+}
+.log-status.status-error {
+  color: #fa5959;
+  background: rgba(250,89,89,.1);
+  border: 1px solid rgba(250,89,89,.3);
+}
+
+.log-time {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.log-tokens {
+  font-size: 12px;
+  margin-left: auto;
+}
+
+.log-details-toggle {
+  background: none;
+  border: none;
+  color: var(--accent-1);
+  cursor: pointer;
+}
+
+.log-details {
+  padding: 10px;
+  background: rgba(0,0,0,0.1);
+  margin-top: -1px;
+  border-bottom: 1px solid var(--border);
+  display: none;
+}
+.log-details pre {
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-size: 12px;
+}
+
+#logsPagination {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+  gap: 8px;
+}
+#logsPagination button {
+  padding: 8px 12px;
+}
+#logsPagination button.active {
+  background: var(--btn-blue-fill1);
+  border-color: var(--btn-blue-brd1);
+}

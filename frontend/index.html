@@ -8,6 +8,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
   <script src="https://unpkg.com/gpt-tokenizer"></script>
 </head>
@@ -152,6 +154,12 @@
           </label>
         </div>
       </div>
+    </section>
+
+    <section class="panel logs-panel">
+        <h3>Request Logs</h3>
+        <div id="logsContainer"></div>
+        <div id="logsPagination"></div>
     </section>
 
     <footer class="foot">

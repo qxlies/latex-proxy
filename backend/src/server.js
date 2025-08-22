@@ -19,6 +19,7 @@ const authMiddleware = require('./middleware/auth')
 // Routers
 const profileRouter = require('./routes/profiles')
 const userRouter = require('./routes/user')
+const logRouter = require('./routes/logs')
 
 const PORT = process.env.PORT || 3000
 const ENDPOINT = process.env.ENDPOINT
@@ -41,6 +42,7 @@ app.use(express.json({ limit: '1mb' }))
 
 app.use('/api/profiles', authMiddleware, profileRouter)
 app.use('/api/users', authMiddleware, userRouter)
+app.use('/api/logs', authMiddleware, logRouter)
 
 app.post('/api/auth/register', async (req, res) => {
   const { login, password } = req.body
@@ -123,7 +125,7 @@ function processPlaceholders(messages) {
 
   const summaryRegexMatch = content.match(summaryRegex)
   if (summaryRegexMatch) {
-    placeholders.summary = userPersonaMatch[1].trim()
+    placeholders.summary = summaryRegexMatch[1].trim()
   }
 
   const userNameMatch = content.match(userName)
@@ -201,6 +203,7 @@ function parseSpecialSystemPrompt(messages) {
 }
 
 const Profile = require('./models/Profile');
+const Log = require('./models/Log');
 
 app.post('/v1/chat/completions', authMiddleware, async (req, res) => {
   try {
@@ -234,15 +237,13 @@ app.post('/v1/chat/completions', authMiddleware, async (req, res) => {
     const isStream = body && body.stream === true;
     const url = new URL(proxyEndpoint);
     url.pathname = path.join(url.pathname, 'chat/completions');
-    console.log(proxyEndpoint);
-    console.log(url);
     
     const headers = {
       authorization: `Bearer ${proxyApiKey}`,
       'content-type': 'application/json'
     };
 
-    const r = await fetch(url, {
+    const r = await fetch(url.toString(), {
         method: 'POST',
         headers: { ...headers, ...(isStream && { accept: 'text/event-stream' }) },
         body: JSON.stringify(body)
@@ -257,6 +258,17 @@ app.post('/v1/chat/completions', authMiddleware, async (req, res) => {
 
     if (!isStream || !ctUp.toLowerCase().startsWith('text/event-stream')) {
         const text = await r.text();
+        try {
+            const responseData = JSON.parse(text);
+            await Log.create({
+                userId: req.user.userId,
+                profileId: activeProfile._id,
+                statusCode: r.status,
+                statusText: r.statusText,
+                responseBody: responseData,
+                usage: responseData.usage,
+            });
+        } catch (e) { }
         res.send(text);
         return;
     }
@@ -265,11 +277,50 @@ app.post('/v1/chat/completions', authMiddleware, async (req, res) => {
     res.setHeader('connection', 'keep-alive');
     const reader = r.body.getReader();
     const decoder = new TextDecoder();
+    let accumulatedContent = '';
+    let usage = null;
+
     for (;;) {
         const { done, value } = await reader.read();
         if (done) break;
-        res.write(decoder.decode(value));
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n').filter(line => line.startsWith('data: '));
+
+        for (const line of lines) {
+            const data = line.substring(5).trim();
+            if (data === '[DONE]') continue;
+            
+            try {
+                const parsed = JSON.parse(data);
+                if (parsed.choices && parsed.choices[0].delta && parsed.choices[0].delta.content) {
+                    accumulatedContent += parsed.choices[0].delta.content;
+                }
+                if (parsed.usage) {
+                    usage = parsed.usage;
+                }
+            } catch (e) { }
+        }
+        res.write(chunk);
     }
+    
+    try {
+        await Log.create({
+            userId: req.user.userId,
+            profileId: activeProfile._id,
+            statusCode: r.status,
+            statusText: r.statusText,
+            responseBody: { 
+                stream_ended: true, 
+                full_content: accumulatedContent,
+                usage: usage 
+            },
+            usage: usage,
+        });
+    } catch(e) {
+        console.error("Failed to log stream response:", e);
+    }
+
     res.end();
   } catch (e) {
     if (!res.headersSent) res.status(500).json({ error: { message: e.message, type: 'proxy_error' } });

@@ -37,6 +37,8 @@ const proxyApiKeyInput = document.getElementById('proxyApiKey');
 const userApiKeyEl = document.getElementById('userApiKey');
 const copyUserApiKeyBtn = document.getElementById('copyUserApiKey');
 const copySetupTextEl = document.getElementById('copySetupText');
+const logsContainer = document.getElementById('logsContainer');
+const logsPagination = document.getElementById('logsPagination');
 
 
 let state = {
@@ -626,6 +628,76 @@ async function setApiActiveProfile(profileId) {
     }
 }
 
+async function fetchLogs(page = 1) {
+    try {
+        const data = await fetchAPI(`/api/logs?page=${page}`);
+        renderLogs(data.logs);
+        renderPagination(data.totalPages, data.currentPage);
+    } catch (error) {
+        logsContainer.innerHTML = 'Failed to load logs.';
+    }
+}
+
+function renderLogs(logs) {
+    logsContainer.innerHTML = '';
+    if (logs.length === 0) {
+        logsContainer.innerHTML = '<p>No logs found.</p>';
+        return;
+    }
+
+    logs.forEach(log => {
+        const logItem = document.createElement('div');
+        logItem.className = 'log-item';
+        
+        const statusClass = log.statusCode >= 400 ? 'status-error' : 'status-200';
+        const totalTokens = log.usage ? log.usage.total_tokens : 'N/A';
+
+        logItem.innerHTML = `
+            <span class="log-status ${statusClass}">${log.statusCode}</span>
+            <span class="log-time">${new Date(log.createdAt).toLocaleString()}</span>
+            <span class="log-tokens">Tokens: ${totalTokens}</span>
+            <button class="log-details-toggle">Details</button>
+        `;
+
+        const detailsRow = document.createElement('div');
+        detailsRow.className = 'log-details';
+        
+        const pre = document.createElement('pre');
+        const code = document.createElement('code');
+        code.className = 'json';
+        code.textContent = JSON.stringify(log.responseBody, null, 2);
+        pre.appendChild(code);
+        detailsRow.appendChild(pre);
+        
+        logItem.querySelector('.log-details-toggle').addEventListener('click', () => {
+            const details = logItem.nextElementSibling;
+            if (details && details.classList.contains('log-details')) {
+                const codeBlock = details.querySelector('code');
+                if (details.style.display === 'block') {
+                    details.style.display = 'none';
+                } else {
+                    details.style.display = 'block';
+                    hljs.highlightElement(codeBlock);
+                }
+            }
+        });
+
+        logsContainer.appendChild(logItem);
+        logsContainer.appendChild(detailsRow);
+    });
+}
+
+function renderPagination(totalPages, currentPage) {
+    logsPagination.innerHTML = '';
+    for (let i = 1; i <= totalPages; i++) {
+        const pageButton = document.createElement('button');
+        pageButton.textContent = i;
+        pageButton.className = `btn btn-ghost ${i == currentPage ? 'active' : ''}`;
+        pageButton.addEventListener('click', () => fetchLogs(i));
+        logsPagination.appendChild(pageButton);
+    }
+}
+
 async function initApp() {
     try {
         const [{ profiles }, { user }] = await Promise.all([
@@ -648,6 +720,7 @@ async function initApp() {
         renderTabs();
         fillEditor();
         fillProfileSettings();
+        fetchLogs();
     } catch (error) {
         alert(error.message);
         localStorage.removeItem('token');
