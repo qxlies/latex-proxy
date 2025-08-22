@@ -59,8 +59,13 @@ async function fetchAPI(url, options = {}) {
     }
     const response = await fetch(url, { ...options, headers });
     if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.msg || 'API request failed');
+        const errorText = await response.text();
+        try {
+            const errorData = JSON.parse(errorText);
+            throw new Error(errorData.msg || 'API request failed');
+        } catch (e) {
+            throw new Error(errorText || 'API request failed');
+        }
     }
     if (response.status === 204 || response.status === 200 && response.headers.get('content-length') === '0') {
         return null;
