@@ -560,11 +560,10 @@ async function handleAuth(url, body, isRegister = false) {
         const data = await response.json();
         if (response.ok) {
             localStorage.setItem('token', data.token);
+            state.user = data.user;
+            await initApp();
             if (isRegister) {
-                state.user = data.user;
-                await initApp();
-            } else {
-                await checkAuth();
+                alert('Registration successful! You are now logged in.');
             }
         } else {
             alert(data.msg);
