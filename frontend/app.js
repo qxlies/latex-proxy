@@ -855,4 +855,15 @@ async function checkAuth() {
     }
 }
 
+const textarea = document.getElementById('tabContent');
+const tabs = document.getElementById('tabs');
+
+const resizeObserver = new ResizeObserver(() => {
+  tabs.style.maxHeight = (textarea.offsetHeight+72) + 'px';
+});
+
+resizeObserver.observe(textarea);
+
+tabs.style.maxHeight = (textarea.offsetHeight+72) + 'px';
+
 checkAuth();

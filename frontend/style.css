@@ -110,7 +110,7 @@ input[type="text"], input[type="password"], textarea {
   outline: none;
   transition: border-color .2s, background .2s, box-shadow .2s;
 }
-textarea { resize: vertical; height: 250px; }
+textarea { resize: vertical; height: 320px; }
 textarea::-webkit-scrollbar {
   width: 8px;
 }
