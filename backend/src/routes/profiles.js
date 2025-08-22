@@ -18,7 +18,7 @@ router.put('/:id', async (req, res) => {
   const {
     user: { userId },
     params: { id: profileId },
-    body: { name, proxyEndpoint, proxyApiKey, model, activeTabId },
+    body: { name, proxyEndpoint, proxyApiKey, model, activeTabId, tabs },
   } = req;
 
   const updateData = {};
@@ -27,6 +27,7 @@ router.put('/:id', async (req, res) => {
   if (typeof proxyApiKey !== 'undefined') updateData.proxyApiKey = proxyApiKey;
   if (model) updateData.model = model;
   if (activeTabId) updateData.activeTabId = activeTabId;
+  if (tabs) updateData.tabs = tabs;
 
 
   if (name === '') {
@@ -99,12 +100,13 @@ router.put('/:id/tabs/move', async (req, res) => {
 });
 
 router.put('/:id/tabs/:tabId', async (req, res) => {
-    const { role, title, content, enabled } = req.body;
+    const { role, title, content, enabled, isPinned } = req.body;
     const fieldsToUpdate = {};
     if (role) fieldsToUpdate['tabs.$.role'] = role;
     if (title) fieldsToUpdate['tabs.$.title'] = title;
     if (content) fieldsToUpdate['tabs.$.content'] = content;
     if (typeof enabled === 'boolean') fieldsToUpdate['tabs.$.enabled'] = enabled;
+    if (typeof isPinned === 'boolean') fieldsToUpdate['tabs.$.isPinned'] = isPinned;
 
     try {
         const profile = await Profile.findOneAndUpdate(

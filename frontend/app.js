@@ -227,6 +227,7 @@ async function _createProfileOnBackend(name, tabs = null) {
             { id: uid(), role: 'system', title: 'scenario', enabled: true, content: '<Scenario>{scenario}</Scenario>' },
             { id: uid(), role: 'system', title: 'user persona', enabled: true, 'content': '<User Persona>{user_persona}</User Persona>'},
             { id: uid(), role: 'system', title: 'summary', enabled: true, 'content': '<summary>{summary}</summary>'},
+            { id: uid(), role: 'system', title: 'chat history', enabled: true, content: '{chat_history}', isPinned: true },
         ]
     };
     newProfileData.activeTabId = newProfileData.tabs[0]?.id || null;
@@ -331,25 +332,22 @@ function createTabElement(t, p) {
   el.className = 'tab' + (t.id === p.activeTabId ? ' active' : '') + (t.enabled ? '' : ' off')
   el.dataset.id = t.id
   const count = tokenCount(t.content || '')
-  el.innerHTML = `
-    <span class="role ${t.role}">${t.role === 'system' ? 'S' : 'U'}</span>
-    <span class="title">${t.title || '(no name)'}</span>
-    <span class="meta">${count}</span>
-    <span class="icons">
-      <button class="icon-btn toggle btn-ghost" title="${t.enabled ? 'Disable' : 'Enable'}" aria-label="toggle">
-        <iconify-icon icon="lucide:eye"></iconify-icon>
+  const isChatHistory = t.content === '{chat_history}';
+ el.innerHTML = `
+   <span class="role ${isChatHistory ? 'chat-history' : t.role}">${isChatHistory ? 'C' : (t.role === 'system' ? 'S' : 'U')}</span>
+   <span class="title">${t.title || '(no name)'}</span>
+   <span class="meta">${count}</span>
+   <span class="icons">
+      <button class="icon-btn pin-tab" title="${t.isPinned ? 'Unpin' : 'Pin'}" aria-label="pin">
+          <iconify-icon icon="${t.isPinned ? 'lucide:pin-off' : 'lucide:pin'}"></iconify-icon>
       </button>
-      <button class="icon-btn del" title="Delete" aria-label="delete">
-        <iconify-icon icon="lucide:trash-2"></iconify-icon>
-      </button>
-    </span>
+   </span>
   `
     el.addEventListener('click', (e) => {
         if (e.target.closest('.icon-btn')) return
         setActiveTab(t.id)
     })
-    el.querySelector('.toggle').addEventListener('click', () => toggleTab(t, p));
-    el.querySelector('.del').addEventListener('click', () => deleteTab(t, p));
+   el.querySelector('.pin-tab').addEventListener('click', () => pinTab(t, p));
     return el;
 }
 
@@ -379,7 +377,19 @@ async function addTab() {
             method: 'POST',
             body: JSON.stringify(newTab),
         });
-        p.tabs.push(tab);
+        
+        const lastTab = p.tabs[p.tabs.length - 1];
+        if (lastTab && lastTab.isPinned) {
+           p.tabs.splice(p.tabs.length - 1, 0, tab);
+        } else {
+           p.tabs.push(tab);
+        }
+
+        await fetchAPI(`/api/profiles/${p._id}/tabs/move`, {
+           method: 'PUT',
+           body: JSON.stringify({ tabs: p.tabs }),
+        });
+
         await setActiveTab(tab.id);
     } catch (error) {
         alert(error.message);
@@ -397,6 +407,8 @@ function fillEditor() {
     tabRoleEl.value = t.role;
     tabTitleEl.value = t.title;
     tabContentEl.value = t.content;
+   tabContentEl.readOnly = t.content === '{chat_history}';
+   tabRoleEl.disabled = t.content === '{chat_history}';
 }
 
 function fillProfileSettings() {
@@ -496,19 +508,43 @@ async function deleteTab(tab, profile) {
     }
 }
 
+async function pinTab(tab, profile) {
+   const newPinnedState = !tab.isPinned;
+   try {
+       await fetchAPI(`/api/profiles/${profile._id}/tabs/${tab.id}`, {
+           method: 'PUT',
+           body: JSON.stringify({ isPinned: newPinnedState }),
+       });
+       tab.isPinned = newPinnedState;
+       renderTabs();
+   } catch (error) {
+       alert(error.message);
+   }
+}
+
 async function moveTab(tabId, direction) {
    const p = currentProfile();
    if (!p) return;
 
-   const index = p.tabs.findIndex(t => t.id === tabId);
-   if (index === -1) return;
+   let index = p.tabs.findIndex(t => t.id === tabId);
+   if (index === -1 || p.tabs[index].isPinned) return;
 
-   if (direction === 'up' && index > 0) {
-       [p.tabs[index - 1], p.tabs[index]] = [p.tabs[index], p.tabs[index - 1]];
-   } else if (direction === 'down' && index < p.tabs.length - 1) {
-       [p.tabs[index], p.tabs[index + 1]] = [p.tabs[index + 1], p.tabs[index]];
-   } else {
-       return;
+   if (direction === 'up') {
+       let newIndex = index - 1;
+       while (newIndex >= 0 && p.tabs[newIndex].isPinned) {
+           newIndex--;
+       }
+       if (newIndex >= 0) {
+           [p.tabs[newIndex], p.tabs[index]] = [p.tabs[index], p.tabs[newIndex]];
+       }
+   } else { // down
+       let newIndex = index + 1;
+       while (newIndex < p.tabs.length && p.tabs[newIndex].isPinned) {
+           newIndex++;
+       }
+       if (newIndex < p.tabs.length) {
+           [p.tabs[newIndex], p.tabs[index]] = [p.tabs[index], p.tabs[newIndex]];
+       }
    }
 
    try {
@@ -569,6 +605,18 @@ document.getElementById('moveTabUp').addEventListener('click', () => {
  document.getElementById('moveTabDown').addEventListener('click', () => {
    const t = currentTab();
    if (t) moveTab(t.id, 'down');
+});
+
+document.getElementById('deleteTab').addEventListener('click', () => {
+   const t = currentTab();
+   const p = currentProfile();
+   if (t && p && t.content !== '{chat_history}') deleteTab(t, p);
+});
+
+document.getElementById('toggleTab').addEventListener('click', () => {
+   const t = currentTab();
+   const p = currentProfile();
+   if (t && p && t.content !== '{chat_history}') toggleTab(t, p);
 });
 
 tabRoleEl.addEventListener('change', debouncedEditorChange);
@@ -760,8 +808,23 @@ async function initApp() {
         state.profiles = profiles;
         state.user = user;
 
+       for (const profile of profiles) {
+           if (!profile.tabs.some(t => t.content === '{chat_history}')) {
+               const newTab = { id: uid(), role: 'system', title: 'chat history', content: '{chat_history}', enabled: true, isPinned: true };
+               profile.tabs.push(newTab);
+               await fetchAPI(`/api/profiles/${profile._id}`, {
+                   method: 'PUT',
+                   body: JSON.stringify({ tabs: profile.tabs }),
+               });
+           }
+       }
+
         if (profiles.length > 0) {
-            state.selectedProfileId = profiles[0]._id;
+           if (user.activeProfileId && profiles.some(p => p._id === user.activeProfileId)) {
+               state.selectedProfileId = user.activeProfileId;
+           } else {
+               state.selectedProfileId = profiles[0]._id;
+           }
         } else {
             await createDefaultProfile();
             return;

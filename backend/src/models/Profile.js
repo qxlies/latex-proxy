@@ -6,6 +6,7 @@ const TabSchema = new mongoose.Schema({
   title: { type: String, required: true },
   content: { type: String, default: '' },
   enabled: { type: Boolean, default: true },
+  isPinned: { type: Boolean, default: false },
 });
 
 const ProfileSchema = new mongoose.Schema({

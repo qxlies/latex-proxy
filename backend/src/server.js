@@ -246,16 +246,33 @@ app.post('/v1/chat/completions', authMiddleware, async (req, res) => {
       }
     }
 
-    const incomingSystemMessage = body.messages.find(m => m.role === 'system');
-    const profileSystemPrompt = buildProfilePrompt(activeProfile);
+    const finalMessages = [];
+    const userMessages = body.messages.filter(m => m.role !== 'system');
+    const incomingSystem = body.messages.find(m => m.role === 'system');
 
-    if (incomingSystemMessage && profileSystemPrompt) {
-        const placeholderProcessedPrompt = processPlaceholders([{ role: 'system', content: profileSystemPrompt + incomingSystemMessage.content }]);
-        const finalMessages = parseSpecialSystemPrompt(placeholderProcessedPrompt);
-        body.messages = [...finalMessages, ...body.messages.slice(1)];
-    } else {
-       body.messages = parseSpecialSystemPrompt(processPlaceholders(body.messages));
+    activeProfile.tabs.forEach(tab => {
+        if (!tab.enabled) return;
+
+        if (tab.content === '{chat_history}') {
+            finalMessages.push(...userMessages);
+        } else {
+            finalMessages.push({
+                role: tab.role,
+                content: tab.content
+            });
+        }
+    });
+
+    if (incomingSystem) {
+        const processed = processPlaceholders([incomingSystem]);
+        if (processed && processed[0] && processed[0].content) {
+            finalMessages.unshift(processed[0]);
+        }
     }
+    
+    body.messages = finalMessages;
+
+   console.log(body.messages);
 
     const isStream = body && body.stream === true;
     const url = new URL(proxyEndpoint);
