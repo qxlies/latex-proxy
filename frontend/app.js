@@ -128,7 +128,7 @@ async function handleFileImport(event) {
             if (!importedProfile.name || !Array.isArray(importedProfile.tabs)) {
                 throw new Error('Invalid profile format');
             }
- 
+
             importedProfile.name = `${importedProfile.name} (imported)`;
 
             await _createProfileOnBackend(importedProfile.name, importedProfile.tabs);
@@ -563,7 +563,7 @@ async function handleAuth(url, body, isRegister = false) {
         if (response.ok) {
             localStorage.setItem('token', data.token);
             state.user = data.user;
-            await initApp();
+            await checkAuth();
             if (isRegister) {
                 alert('Registration successful! You are now logged in.');
             }
