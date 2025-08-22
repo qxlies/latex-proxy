@@ -222,7 +222,11 @@ app.post('/v1/chat/completions', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'Proxy endpoint or API key not configured in the active profile' });
     }
 
-    const body = { ...req.body, model: body.model || model };
+    const body = { ...req.body };
+
+    if (model) {
+      body.model = model;
+    }
 
     if (proxyEndpoint === 'free') {
       proxyEndpoint = FREE_ENDPOINT;
