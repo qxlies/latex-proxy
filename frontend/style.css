@@ -261,6 +261,30 @@ iconify-icon { width: 16px; height: 16px; display: inline-block }
 }
 
 .foot { margin-top: 26px; text-align: center; color: var(--muted); font-size: 13px }
+.foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.footer-left, .footer-right {
+  flex: 1;
+}
+.footer-center {
+  flex: 0 1 auto;
+}
+.footer-right {
+  text-align: right;
+}
+.footer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+}
+.footer-link iconify-icon {
+  font-size: 18px;
+}
 
 .api .api-item {
   display: flex;
