@@ -18,13 +18,14 @@ router.put('/:id', async (req, res) => {
   const {
     user: { userId },
     params: { id: profileId },
-    body: { name, proxyEndpoint, proxyApiKey, activeTabId },
+    body: { name, proxyEndpoint, proxyApiKey, model, activeTabId },
   } = req;
 
   const updateData = {};
   if (name) updateData.name = name;
   if (proxyEndpoint) updateData.proxyEndpoint = proxyEndpoint;
   if (typeof proxyApiKey !== 'undefined') updateData.proxyApiKey = proxyApiKey;
+  if (model) updateData.model = model;
   if (activeTabId) updateData.activeTabId = activeTabId;
 
 
@@ -77,6 +78,21 @@ router.post('/:id/tabs', async (req, res) => {
             return res.status(404).send('Profile not found');
         }
         res.status(201).json({ tab: newTab });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.put('/:id/tabs/move', async (req, res) => {
+    const { tabs } = req.body;
+    try {
+        const profile = await Profile.findOne({ _id: req.params.id, userId: req.user.userId });
+        if (!profile) {
+            return res.status(404).send('Profile not found');
+        }
+        profile.tabs = tabs;
+        await profile.save();
+        res.status(200).json({ tabs: profile.tabs });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

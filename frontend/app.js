@@ -34,6 +34,7 @@ const importFileInput = document.getElementById('importFileInput');
 const setApiActiveProfileBtn = document.getElementById('setApiActiveProfile');
 const proxyEndpointInput = document.getElementById('proxyEndpoint');
 const proxyApiKeyInput = document.getElementById('proxyApiKey');
+const modelInput = document.getElementById('model');
 const userApiKeyEl = document.getElementById('userApiKey');
 const copyUserApiKeyBtn = document.getElementById('copyUserApiKey');
 const copySetupTextEl = document.getElementById('copySetupText');
@@ -403,10 +404,12 @@ function fillProfileSettings() {
     if (!p) {
         proxyEndpointInput.value = '';
         proxyApiKeyInput.value = '';
+        modelInput.value = '';
         return;
     }
     proxyEndpointInput.value = p.proxyEndpoint || 'https://openrouter.ai/api/v1';
     proxyApiKeyInput.value = p.proxyApiKey || '';
+    modelInput.value = p.model || '';
 }
 
 async function onProfileSettingsChange() {
@@ -416,10 +419,12 @@ async function onProfileSettingsChange() {
     const updatedFields = {
         proxyEndpoint: proxyEndpointInput.value,
         proxyApiKey: proxyApiKeyInput.value,
+        model: modelInput.value,
     };
 
     p.proxyEndpoint = updatedFields.proxyEndpoint;
     p.proxyApiKey = updatedFields.proxyApiKey;
+    p.model = updatedFields.model;
 
     try {
         await fetchAPI(`/api/profiles/${p._id}`, {
@@ -491,6 +496,37 @@ async function deleteTab(tab, profile) {
     }
 }
 
+async function moveTab(tabId, direction) {
+   const p = currentProfile();
+   if (!p) return;
+
+   const index = p.tabs.findIndex(t => t.id === tabId);
+   if (index === -1) return;
+
+   if (direction === 'up' && index > 0) {
+       [p.tabs[index - 1], p.tabs[index]] = [p.tabs[index], p.tabs[index - 1]];
+   } else if (direction === 'down' && index < p.tabs.length - 1) {
+       [p.tabs[index], p.tabs[index + 1]] = [p.tabs[index + 1], p.tabs[index]];
+   } else {
+       return;
+   }
+
+   try {
+       const { tabs } = await fetchAPI(`/api/profiles/${p._id}/tabs/move`, {
+           method: 'PUT',
+           body: JSON.stringify({ tabs: p.tabs }),
+       });
+       p.tabs = tabs;
+       renderTabs();
+   } catch (error) {
+       alert(error.message);
+       if (direction === 'up') {
+           [p.tabs[index - 1], p.tabs[index]] = [p.tabs[index], p.tabs[index - 1]];
+       } else {
+           [p.tabs[index], p.tabs[index + 1]] = [p.tabs[index + 1], p.tabs[index]];
+       }
+   }
+}
 
 // --- Event Listeners ---
 newProfileBtn.addEventListener('click', createUserProfile);
@@ -525,6 +561,16 @@ const debouncedEditorChange = () => {
     editorTimeout = setTimeout(onEditorChange, 500);
 };
 
+document.getElementById('moveTabUp').addEventListener('click', () => {
+   const t = currentTab();
+   if (t) moveTab(t.id, 'up');
+});
+
+ document.getElementById('moveTabDown').addEventListener('click', () => {
+   const t = currentTab();
+   if (t) moveTab(t.id, 'down');
+});
+
 tabRoleEl.addEventListener('change', debouncedEditorChange);
 tabTitleEl.addEventListener('input', debouncedEditorChange);
 tabContentEl.addEventListener('input', debouncedEditorChange);
@@ -536,6 +582,7 @@ const debouncedProfileSettingsChange = () => {
 
 proxyEndpointInput.addEventListener('input', debouncedProfileSettingsChange);
 proxyApiKeyInput.addEventListener('input', debouncedProfileSettingsChange);
+modelInput.addEventListener('input', debouncedProfileSettingsChange);
 
 
 // --- Auth Logic ---

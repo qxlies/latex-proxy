@@ -96,6 +96,10 @@
           <span>Proxy API Key</span>
           <input id="proxyApiKey" type="password" placeholder="sk-or-...">
         </label>
+        <label class="field">
+           <span>Model</span>
+           <input id="model" type="text" placeholder="deepseek-r1-0528">
+         </label>
       </div>
     </section>
 
@@ -128,9 +132,17 @@
         <aside class="tabs-pane">
           <div class="tabs-head">
             <div class="tabs-title">Tabs</div>
-            <button id="addTab" class="icon-btn add-tab btn-green" title="Add tab" aria-label="Add tab">
-              <iconify-icon icon="lucide:plus"></iconify-icon>
-            </button>
+             <div class="tab-actions">
+               <button id="moveTabUp" class="icon-btn" title="Move up" aria-label="Move up">
+                   <iconify-icon icon="lucide:arrow-up"></iconify-icon>
+               </button>
+               <button id="moveTabDown" class="icon-btn" title="Move down" aria-label="Move down">
+                   <iconify-icon icon="lucide:arrow-down"></iconify-icon>
+               </button>
+               <button id="addTab" class="icon-btn add-tab btn-green" title="Add tab" aria-label="Add tab">
+                 <iconify-icon icon="lucide:plus"></iconify-icon>
+               </button>
+            </div>
           </div>
           <div class="tabs" id="tabs"></div>
         </aside>

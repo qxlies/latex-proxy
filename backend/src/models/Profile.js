@@ -26,6 +26,10 @@ const ProfileSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
+  model: {
+    type: String,
+    default: 'gpt-4o',
+  },
   activeTabId: {
     type: String,
     default: null,
