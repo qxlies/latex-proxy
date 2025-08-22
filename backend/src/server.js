@@ -22,8 +22,8 @@ const userRouter = require('./routes/user')
 const logRouter = require('./routes/logs')
 
 const PORT = process.env.PORT || 3000
-const ENDPOINT = process.env.ENDPOINT
-const API_KEY = process.env.API_KEY
+const FREE_ENDPOINT = process.env.ENDPOINT
+const FREE_API_KEY = process.env.API_KEY
 
 app.use(express.static(path.join(__dirname, '../../frontend')))
 
@@ -223,6 +223,25 @@ app.post('/v1/chat/completions', authMiddleware, async (req, res) => {
     }
 
     const body = { ...req.body };
+
+    if (proxyEndpoint === 'free') {
+      proxyEndpoint = FREE_ENDPOINT;
+      proxyApiKey = FREE_API_KEY;
+
+      switch (body.model) {
+        case 'deepseek-r1-0528':
+          body.model = 'deepseek-r1-0528-p:8';
+          break;
+
+        case 'deepseek-v3-0324':
+          body.model = 'deepseek-v3-0324-p:8';
+          break;
+
+        default:
+          throw new Error(`Unsupported model in free provider: ${body.model}`);
+      }
+    }
+
     const incomingSystemMessage = body.messages.find(m => m.role === 'system');
     const profileSystemPrompt = buildProfilePrompt(activeProfile);
 
