@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Chat Completions Proxy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+  <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+  <script src="https://unpkg.com/gpt-tokenizer"></script>
+</head>
+<body>
+  <div id="auth-container">
+    <div class="auth-box">
+      <div id="login-form">
+        <h2>Login</h2>
+        <input type="text" id="login-username" placeholder="Username" required>
+        <input type="password" id="login-password" placeholder="Password" required>
+        <button id="login-btn">Login</button>
+        <p>Don't have an account? <a href="#" id="show-register">Register</a></p>
+      </div>
+      <div id="register-form" class="hidden">
+        <h2>Register</h2>
+        <input type="text" id="register-username" placeholder="Username" required>
+        <input type="password" id="register-password" placeholder="Password" required>
+        <button id="register-btn">Register</button>
+        <p>Already have an account? <a href="#" id="show-login">Login</a></p>
+      </div>
+    </div>
+  </div>
+
+  <main id="app" class="container hidden">
+    <header class="hero">
+      <div class="badge">CONDOM FOR PROMPTS</div>
+      <h1>Latex Proxy</h1>
+      <p class="sub">Formatting your prompts before they go in</p>
+    </header>
+
+    <section class="panel api">
+      <div class="api-item">
+        <div class="method">POST</div>
+        <div class="path">/v1/chat/completions</div>
+        <div class="spacer"></div>
+        <div class="endpoint">
+          <span class="full" id="endpointUrl"></span>
+          <button id="copyEndpoint" class="icon-btn btn-blue" title="Copy" aria-label="Copy">
+            <iconify-icon icon="lucide:copy"></iconify-icon>
+          </button>
+        </div>
+      </div>
+      <div class="api-item">
+          <div class="method">AUTH</div>
+          <div class="path">Your API Key</div>
+          <div class="spacer"></div>
+          <div class="endpoint">
+            <span class="full" id="userApiKey"></span>
+            <button id="copyUserApiKey" class="icon-btn btn-blue" title="Copy" aria-label="Copy">
+              <iconify-icon icon="lucide:copy"></iconify-icon>
+            </button>
+          </div>
+        </div>
+    </section>
+
+    <section class="panel profiles">
+      <div class="profiles-head">
+        <div class="profiles-title-wrap">
+          <div class="profiles-title">Profiles</div>
+          <button id="setApiActiveProfile" class="btn btn-blue">Set for API</button>
+          <button id="importProfile" class="btn btn-green">Import</button>
+          <button id="exportProfile" class="btn btn-yellow">Export</button>
+        </div>
+        <div class="profiles-actions">
+          <button id="newProfile" class="btn btn-green">Create</button>
+          <button id="renameProfile" class="btn btn-blue">Rename</button>
+          <button id="copyProfile" class="btn btn-blue">Clone</button>
+          <button id="deleteProfile" class="btn btn-red">Delete</button>
+          <input type="file" id="importFileInput" accept=".json" style="display: none;">
+        </div>
+      </div>
+      <div class="profiles-scroller">
+        <div class="profiles-row" id="profilesRow"></div>
+      </div>
+    </section>
+
+    <section class="panel profile-settings">
+      <div class="grid">
+        <label class="field">
+          <span>Proxy Endpoint</span>
+          <input id="proxyEndpoint" type="text" placeholder="https://openrouter.ai/api/v1">
+        </label>
+        <label class="field">
+          <span>Proxy API Key</span>
+          <input id="proxyApiKey" type="password" placeholder="sk-or-...">
+        </label>
+      </div>
+    </section>
+
+    <section class="panel documentation">
+        <div class="doc-item btn-red">
+            <iconify-icon icon="lucide:triangle-alert"></iconify-icon>
+            <div>
+                <h4>Setup</h4>
+                <p>Paste this <code id="copySetupText" class="copyable-code">&lt;user&gt;{{user}}&lt;/user&gt;&lt;character&gt;{{char}}&lt;/character&gt;</code> to your system prompt on JanitorAI (click to copy)</p>
+            </div>
+        </div>
+        <div class="doc-item btn-blue">
+            <iconify-icon icon="lucide:braces"></iconify-icon>
+            <div>
+                <h4>Placeholders</h4>
+                <p>Use <code>{bot_persona}</code>, <code>{scenario}</code>, <code>{user_persona}</code>, <code>{{user}}</code> and <code>{{char}}</code> in your profile tabs. They will be replaced by content from the incoming API request's.</p>
+            </div>
+        </div>
+        <div class="doc-item btn-green">
+            <iconify-icon icon="lucide:cloud-download"></iconify-icon>
+            <div>
+                <h4>Sharing</h4>
+                <p>Use <code>Import</code> and <code>Export</code> buttons to share templates with your friends.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="panel">
+      <div class="editor-split">
+        <aside class="tabs-pane">
+          <div class="tabs-head">
+            <div class="tabs-title">Tabs</div>
+            <button id="addTab" class="icon-btn add-tab btn-green" title="Add tab" aria-label="Add tab">
+              <iconify-icon icon="lucide:plus"></iconify-icon>
+            </button>
+          </div>
+          <div class="tabs" id="tabs"></div>
+        </aside>
+        <div class="editor editor-pane">
+          <div class="grid">
+            <label class="field">
+              <span>Role</span>
+              <select id="tabRole">
+                <option value="system">system</option>
+                <option value="user">user</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Name</span>
+              <input id="tabTitle" type="text" placeholder="example: guidelines">
+            </label>
+          </div>
+          <label class="field">
+            <span>Content</span>
+            <textarea id="tabContent" rows="8" placeholder="You are helpful assistant"></textarea>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <footer class="foot">
+      <p>Lorem ipsum</p>
+      <button id="logout-btn" class="btn btn-red">Logout</button>
+    </footer>
+  </main>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

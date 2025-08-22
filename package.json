@@ -1,0 +1,17 @@
+{
+  "name": "latex-proxy",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "start": "npm --prefix backend start"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "jsonwebtoken": "^9.0.2",
+    "uuid": "^11.1.0"
+  }
+}

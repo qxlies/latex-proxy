@@ -1,0 +1,670 @@
+const { encode } = GPTTokenizer_cl100k_base
+
+// Auth elements
+const appContainer = document.getElementById('app');
+const authContainer = document.getElementById('auth-container');
+const loginForm = document.getElementById('login-form');
+const registerForm = document.getElementById('register-form');
+const showRegisterLink = document.getElementById('show-register');
+const showLoginLink = document.getElementById('show-login');
+const loginBtn = document.getElementById('login-btn');
+const registerBtn = document.getElementById('register-btn');
+const logoutBtn = document.getElementById('logout-btn');
+const loginUsernameInput = document.getElementById('login-username');
+const loginPasswordInput = document.getElementById('login-password');
+const registerUsernameInput = document.getElementById('register-username');
+const registerPasswordInput = document.getElementById('register-password');
+
+// App elements
+const endpointUrlEl = document.getElementById('endpointUrl')
+const copyEndpointBtn = document.getElementById('copyEndpoint')
+const tabsWrap = document.getElementById('tabs')
+const addTabBtn = document.getElementById('addTab')
+const tabRoleEl = document.getElementById('tabRole')
+const tabTitleEl = document.getElementById('tabTitle')
+const tabContentEl = document.getElementById('tabContent')
+const profilesRow = document.getElementById('profilesRow')
+const newProfileBtn = document.getElementById('newProfile')
+const copyProfileBtn = document.getElementById('copyProfile')
+const renameProfileBtn = document.getElementById('renameProfile')
+const deleteProfileBtn = document.getElementById('deleteProfile')
+const exportProfileBtn = document.getElementById('exportProfile')
+const importProfileBtn = document.getElementById('importProfile');
+const importFileInput = document.getElementById('importFileInput');
+const setApiActiveProfileBtn = document.getElementById('setApiActiveProfile');
+const proxyEndpointInput = document.getElementById('proxyEndpoint');
+const proxyApiKeyInput = document.getElementById('proxyApiKey');
+const userApiKeyEl = document.getElementById('userApiKey');
+const copyUserApiKeyBtn = document.getElementById('copyUserApiKey');
+const copySetupTextEl = document.getElementById('copySetupText');
+
+
+let state = {
+    profiles: [],
+    selectedProfileId: null,
+    user: null,
+};
+
+// --- API Helper ---
+async function fetchAPI(url, options = {}) {
+    const token = localStorage.getItem('token');
+    const headers = {
+        'Content-Type': 'application/json',
+        ...options.headers,
+    };
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+    const response = await fetch(url, { ...options, headers });
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.msg || 'API request failed');
+    }
+    if (response.status === 204 || response.status === 200 && response.headers.get('content-length') === '0') {
+        return null;
+    }
+    return response.json();
+}
+
+
+function uid() {
+  return Math.random().toString(36).slice(2, 10)
+}
+
+function tokenCount(txt) {
+  try {
+    return encode(txt || '').length
+  } catch {
+    const s = (txt || '')
+    return Math.ceil(s.length / 4)
+  }
+}
+
+function buildRawProfileText(p) {
+  let tabs = Array.isArray(p?.tabs) ? p.tabs.filter(t => t.enabled !== false) : []
+  if (!tabs.length && Array.isArray(p?.tabs)) tabs = p.tabs
+  return tabs.map(t => `<${t.role}>\n${t.content || ''}\n</${t.role}>`).join('\n')
+}
+
+async function exportProfile() {
+  const p = currentProfile();
+  if (!p) return;
+
+  const profileToExport = JSON.parse(JSON.stringify(p));
+  delete profileToExport.proxyEndpoint;
+  delete profileToExport.proxyApiKey;
+  delete profileToExport.userId;
+  delete profileToExport._id;
+  delete profileToExport.__v;
+
+
+  const blob = new Blob([JSON.stringify(profileToExport, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${p.name || 'profile'}.json`;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    URL.revokeObjectURL(a.href);
+    a.remove();
+  }, 0);
+}
+
+function importProfile() {
+    importFileInput.click();
+}
+
+async function handleFileImport(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        try {
+            const importedProfile = JSON.parse(e.target.result);
+
+            if (!importedProfile.name || !Array.isArray(importedProfile.tabs)) {
+                throw new Error('Invalid profile format');
+            }
+ 
+            importedProfile.name = `${importedProfile.name} (imported)`;
+
+            await _createProfileOnBackend(importedProfile.name, importedProfile.tabs);
+
+        } catch (error) {
+            alert(`Failed to import profile: ${error.message}`);
+        }
+    };
+    reader.readAsText(file);
+
+    event.target.value = '';
+}
+
+function buildEndpointUrl() {
+  const base = (location.origin || 'http://localhost:3000').replace(/\/+$/, '')
+  return base + '/v1/chat/completions'
+}
+function updateEndpointUrl() {
+  const url = buildEndpointUrl()
+  endpointUrlEl.textContent = url
+  endpointUrlEl.title = url
+}
+async function copyEndpoint() {
+  const url = endpointUrlEl.textContent || buildEndpointUrl()
+  try {
+    await navigator.clipboard.writeText(url)
+    const oldTitle = copyEndpointBtn.getAttribute('title') || ''
+    copyEndpointBtn.setAttribute('title', 'Copied')
+    copyEndpointBtn.classList.add('ok')
+    setTimeout(() => {
+      copyEndpointBtn.classList.remove('ok')
+      copyEndpointBtn.setAttribute('title', oldTitle || 'Copy')
+    }, 900)
+  } catch {}
+}
+
+function currentProfile() {
+    if (!state.selectedProfileId) return null;
+    return state.profiles.find(p => p._id === state.selectedProfileId);
+}
+
+function currentTab() {
+    const p = currentProfile();
+    if (!p || !p.activeTabId) return null;
+    return p.tabs.find(t => t.id === p.activeTabId);
+}
+
+function renderProfiles() {
+    profilesRow.innerHTML = '';
+    const sortedProfiles = [...state.profiles].sort((a, b) => {
+        if (state.user && a._id === state.user.activeProfileId) return -1;
+        if (state.user && b._id === state.user.activeProfileId) return 1;
+        return 0;
+    });
+
+    sortedProfiles.forEach(p => {
+        const el = document.createElement('button');
+        el.type = 'button';
+        el.className = 'profile-pill' + (p._id === state.selectedProfileId ? ' active' : '') + (state.user && state.user.activeProfileId === p._id ? ' api-active' : '');
+        el.textContent = p.name;
+        el.title = p.name;
+        el.dataset.id = p._id;
+        
+        if (state.user && state.user.activeProfileId === p._id) {
+            const activeIndicator = document.createElement('span');
+            activeIndicator.textContent = 'API';
+            activeIndicator.className = 'api-active-indicator';
+            el.appendChild(activeIndicator);
+        }
+
+        el.addEventListener('click', () => setActiveProfile(p._id));
+        profilesRow.appendChild(el);
+    });
+}
+
+async function setActiveProfile(id) {
+    state.selectedProfileId = id;
+    renderProfiles();
+    renderTabs();
+    fillEditor();
+    fillProfileSettings();
+}
+
+async function _createProfileOnBackend(name, tabs = null) {
+    const newProfileData = {
+        name,
+        tabs: tabs || [
+            { id: uid(), role: 'system', title: 'system prompt', enabled: true, content: 'Insert your system prompt here' },
+            { id: uid(), role: 'system', title: 'bot persona', enabled: true, content: '<{{char}}\'s Persona>{bot_persona}<{{char}}\'s Persona>'},
+            { id: uid(), role: 'system', title: 'scenario', enabled: true, content: '<Scenario>{scenario}</Scenario>' },
+            { id: uid(), role: 'system', title: 'user persona', enabled: true, 'content': '<User Persona>{user_persona}</User Persona>'}
+        ]
+    };
+    newProfileData.activeTabId = newProfileData.tabs[0]?.id || null;
+
+    try {
+        const { profile } = await fetchAPI('/api/profiles', {
+            method: 'POST',
+            body: JSON.stringify(newProfileData),
+        });
+        state.profiles.push(profile);
+        await setActiveProfile(profile._id);
+        if (!state.user.activeProfileId) {
+            await setApiActiveProfile(profile._id);
+        } else {
+            renderProfiles();
+        }
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+async function createUserProfile() {
+    const name = prompt('Profile name');
+    if (!name) return;
+    await _createProfileOnBackend(name);
+}
+
+async function createDefaultProfile() {
+    await _createProfileOnBackend('Profile 1');
+}
+
+
+async function renameProfile() {
+    const p = currentProfile();
+    if (!p) return;
+    const newName = prompt('New profile name', p.name);
+    if (!newName || newName === p.name) return;
+
+    try {
+        const { profile } = await fetchAPI(`/api/profiles/${p._id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ name: newName }),
+        });
+        p.name = profile.name;
+        renderProfiles();
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+async function copyProfile() {
+    const p = currentProfile();
+    if (!p) return;
+    try {
+        const { profile } = await fetchAPI(`/api/profiles/${p._id}/clone`, {
+            method: 'POST',
+        });
+        state.profiles.push(profile);
+        setActiveProfile(profile._id);
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+async function deleteProfile() {
+    const p = currentProfile();
+    if (!p) return;
+    if (state.profiles.length <= 1) {
+        alert("You can't delete the last profile.");
+        return;
+    }
+    if (!confirm(`Are you sure you want to delete profile "${p.name}"?`)) return;
+
+    try {
+        await fetchAPI(`/api/profiles/${p._id}`, { method: 'DELETE' });
+        state.profiles = state.profiles.filter(prof => prof._id !== p._id);
+        
+        if (state.user.activeProfileId === p._id) {
+            await setApiActiveProfile(state.profiles[0]._id);
+        }
+
+        setActiveProfile(state.profiles[0]._id);
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+
+function renderTabs() {
+    const p = currentProfile();
+    tabsWrap.innerHTML = '';
+    if (!p || !p.tabs) return;
+
+    p.tabs.forEach(t => {
+        const el = createTabElement(t, p);
+        tabsWrap.appendChild(el);
+    });
+}
+
+function createTabElement(t, p) {
+  const el = document.createElement('div')
+  el.className = 'tab' + (t.id === p.activeTabId ? ' active' : '') + (t.enabled ? '' : ' off')
+  el.dataset.id = t.id
+  const count = tokenCount(t.content || '')
+  el.innerHTML = `
+    <span class="role ${t.role}">${t.role === 'system' ? 'S' : 'U'}</span>
+    <span class="title">${t.title || '(no name)'}</span>
+    <span class="meta">${count}</span>
+    <span class="icons">
+      <button class="icon-btn toggle btn-ghost" title="${t.enabled ? 'Disable' : 'Enable'}" aria-label="toggle">
+        <iconify-icon icon="lucide:eye"></iconify-icon>
+      </button>
+      <button class="icon-btn del" title="Delete" aria-label="delete">
+        <iconify-icon icon="lucide:trash-2"></iconify-icon>
+      </button>
+    </span>
+  `
+    el.addEventListener('click', (e) => {
+        if (e.target.closest('.icon-btn')) return
+        setActiveTab(t.id)
+    })
+    el.querySelector('.toggle').addEventListener('click', () => toggleTab(t, p));
+    el.querySelector('.del').addEventListener('click', () => deleteTab(t, p));
+    return el;
+}
+
+async function setActiveTab(tabId) {
+    const p = currentProfile();
+    if (!p || p.activeTabId === tabId) return;
+    p.activeTabId = tabId;
+    try {
+        await fetchAPI(`/api/profiles/${p._id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ activeTabId: tabId }),
+        });
+        renderTabs();
+        fillEditor();
+    } catch(error) {
+        alert(error.message);
+    }
+}
+
+async function addTab() {
+    const p = currentProfile();
+    if (!p) return;
+    const newTab = { role: 'system', title: 'new tab', content: '', enabled: true };
+
+    try {
+        const { tab } = await fetchAPI(`/api/profiles/${p._id}/tabs`, {
+            method: 'POST',
+            body: JSON.stringify(newTab),
+        });
+        p.tabs.push(tab);
+        await setActiveTab(tab.id);
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+function fillEditor() {
+    const t = currentTab();
+    if (!t) {
+        tabRoleEl.value = 'system';
+        tabTitleEl.value = '';
+        tabContentEl.value = '';
+        return;
+    }
+    tabRoleEl.value = t.role;
+    tabTitleEl.value = t.title;
+    tabContentEl.value = t.content;
+}
+
+function fillProfileSettings() {
+    const p = currentProfile();
+    if (!p) {
+        proxyEndpointInput.value = '';
+        proxyApiKeyInput.value = '';
+        return;
+    }
+    proxyEndpointInput.value = p.proxyEndpoint || 'https://openrouter.ai/api/v1';
+    proxyApiKeyInput.value = p.proxyApiKey || '';
+}
+
+async function onProfileSettingsChange() {
+    const p = currentProfile();
+    if (!p) return;
+
+    const updatedFields = {
+        proxyEndpoint: proxyEndpointInput.value,
+        proxyApiKey: proxyApiKeyInput.value,
+    };
+
+    p.proxyEndpoint = updatedFields.proxyEndpoint;
+    p.proxyApiKey = updatedFields.proxyApiKey;
+
+    try {
+        await fetchAPI(`/api/profiles/${p._id}`, {
+            method: 'PUT',
+            body: JSON.stringify(updatedFields),
+        });
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+
+async function onEditorChange() {
+    const p = currentProfile();
+    const t = currentTab();
+    if (!p || !t) return;
+
+    const updatedFields = {
+        role: tabRoleEl.value,
+        title: tabTitleEl.value,
+        content: tabContentEl.value,
+    };
+
+    t.role = updatedFields.role;
+    t.title = updatedFields.title;
+    t.content = updatedFields.content;
+    renderTabs();
+
+    try {
+        await fetchAPI(`/api/profiles/${p._id}/tabs/${t.id}`, {
+            method: 'PUT',
+            body: JSON.stringify(updatedFields),
+        });
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+async function toggleTab(tab, profile) {
+    const newEnabledState = !tab.enabled;
+    try {
+        await fetchAPI(`/api/profiles/${profile._id}/tabs/${tab.id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ enabled: newEnabledState }),
+        });
+        tab.enabled = newEnabledState;
+        renderTabs();
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+async function deleteTab(tab, profile) {
+    if (!confirm(`Are you sure you want to delete tab "${tab.title}"?`)) return;
+    try {
+        await fetchAPI(`/api/profiles/${profile._id}/tabs/${tab.id}`, {
+            method: 'DELETE',
+        });
+        profile.tabs = profile.tabs.filter(t => t.id !== tab.id);
+        if (profile.activeTabId === tab.id) {
+            const nextTab = profile.tabs[0] || null;
+            await setActiveTab(nextTab ? nextTab.id : null);
+        } else {
+           renderTabs();
+           fillEditor();
+        }
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+
+// --- Event Listeners ---
+newProfileBtn.addEventListener('click', createUserProfile);
+copyProfileBtn.addEventListener('click', copyProfile);
+renameProfileBtn.addEventListener('click', renameProfile);
+deleteProfileBtn.addEventListener('click', deleteProfile);
+copyEndpointBtn.addEventListener('click', copyEndpoint);
+exportProfileBtn.addEventListener('click', exportProfile);
+importProfileBtn.addEventListener('click', importProfile);
+importFileInput.addEventListener('change', handleFileImport);
+addTabBtn.addEventListener('click', addTab);
+setApiActiveProfileBtn.addEventListener('click', () => {
+    const p = currentProfile();
+    if(p) setApiActiveProfile(p._id);
+});
+copyUserApiKeyBtn.addEventListener('click', copyUserApiKey);
+copySetupTextEl.addEventListener('click', () => {
+    const text = copySetupTextEl.textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        const originalText = copySetupTextEl.innerHTML;
+        copySetupTextEl.innerHTML = 'Copied!';
+        setTimeout(() => {
+            copySetupTextEl.innerHTML = originalText;
+        }, 1000);
+    });
+});
+
+
+let editorTimeout;
+const debouncedEditorChange = () => {
+    clearTimeout(editorTimeout);
+    editorTimeout = setTimeout(onEditorChange, 500);
+};
+
+tabRoleEl.addEventListener('change', debouncedEditorChange);
+tabTitleEl.addEventListener('input', debouncedEditorChange);
+tabContentEl.addEventListener('input', debouncedEditorChange);
+
+const debouncedProfileSettingsChange = () => {
+    clearTimeout(editorTimeout);
+    editorTimeout = setTimeout(onProfileSettingsChange, 500);
+};
+
+proxyEndpointInput.addEventListener('input', debouncedProfileSettingsChange);
+proxyApiKeyInput.addEventListener('input', debouncedProfileSettingsChange);
+
+
+// --- Auth Logic ---
+showRegisterLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    loginForm.classList.add('hidden');
+    registerForm.classList.remove('hidden');
+});
+
+showLoginLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    registerForm.classList.add('hidden');
+    loginForm.classList.remove('hidden');
+});
+
+logoutBtn.addEventListener('click', () => {
+    localStorage.removeItem('token');
+    state = { profiles: [], selectedProfileId: null, user: null };
+    checkAuth();
+});
+
+async function handleAuth(url, body, isRegister = false) {
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        const data = await response.json();
+        if (response.ok) {
+            localStorage.setItem('token', data.token);
+            if (isRegister) {
+                state.user = data.user;
+                await initApp();
+            } else {
+                await checkAuth();
+            }
+        } else {
+            alert(data.msg);
+        }
+    } catch (error) {
+        alert('An error occurred. Please try again.');
+    }
+}
+
+registerBtn.addEventListener('click', () => {
+    const login = registerUsernameInput.value;
+    const password = registerPasswordInput.value;
+    if (login && password) {
+        handleAuth('/api/auth/register', { login, password }, true);
+    }
+});
+
+loginBtn.addEventListener('click', () => {
+    const login = loginUsernameInput.value;
+    const password = loginPasswordInput.value;
+    if (login && password) {
+        handleAuth('/api/auth/login', { login, password });
+    }
+});
+
+async function copyUserApiKey() {
+    if (!state.user || !state.user.apiKey) return;
+    const key = state.user.apiKey;
+    try {
+        await navigator.clipboard.writeText(key);
+        const oldTitle = copyUserApiKeyBtn.getAttribute('title') || '';
+        copyUserApiKeyBtn.setAttribute('title', 'Copied');
+        copyUserApiKeyBtn.classList.add('ok');
+        setTimeout(() => {
+            copyUserApiKeyBtn.classList.remove('ok');
+            copyUserApiKeyBtn.setAttribute('title', oldTitle || 'Copy');
+        }, 900);
+    } catch {}
+}
+
+function maskApiKey(key) {
+    if (!key || key.length < 12) {
+        return key;
+    }
+    const prefix = key.substring(0, 5);
+    const suffix = key.substring(key.length - 4);
+    return `${prefix}************************************${suffix}`;
+}
+
+async function setApiActiveProfile(profileId) {
+    try {
+        const { activeProfileId } = await fetchAPI('/api/users/me/active-profile', {
+            method: 'PUT',
+            body: JSON.stringify({ profileId }),
+        });
+        state.user.activeProfileId = activeProfileId;
+        renderProfiles();
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+async function initApp() {
+    try {
+        const [{ profiles }, { user }] = await Promise.all([
+            fetchAPI('/api/profiles'),
+            fetchAPI('/api/users/me')
+        ]);
+        
+        state.profiles = profiles;
+        state.user = user;
+
+        if (profiles.length > 0) {
+            state.selectedProfileId = profiles[0]._id;
+        } else {
+            await createDefaultProfile();
+            return;
+        }
+        updateEndpointUrl();
+        userApiKeyEl.textContent = maskApiKey(user.apiKey);
+        renderProfiles();
+        renderTabs();
+        fillEditor();
+        fillProfileSettings();
+    } catch (error) {
+        alert(error.message);
+        localStorage.removeItem('token');
+        checkAuth();
+    }
+}
+
+async function checkAuth() {
+    const token = localStorage.getItem('token');
+    if (token) {
+        authContainer.classList.add('hidden');
+        appContainer.classList.remove('hidden');
+        await initApp();
+    } else {
+        authContainer.classList.remove('hidden');
+        appContainer.classList.add('hidden');
+    }
+}
+
+checkAuth();
