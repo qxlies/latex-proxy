@@ -217,7 +217,7 @@ app.post('/v1/chat/completions', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'Active profile not found' });
     }
 
-    const { proxyEndpoint, proxyApiKey } = activeProfile;
+    let { proxyEndpoint, proxyApiKey } = activeProfile;
     if (!proxyEndpoint || !proxyApiKey) {
       return res.status(400).json({ error: 'Proxy endpoint or API key not configured in the active profile' });
     }
