@@ -272,8 +272,6 @@ app.post('/v1/chat/completions', authMiddleware, async (req, res) => {
     
     body.messages = finalMessages;
 
-   console.log(body.messages);
-
     const isStream = body && body.stream === true;
     const url = new URL(proxyEndpoint);
     url.pathname = path.join(url.pathname, 'chat/completions');
