@@ -233,7 +233,8 @@ All subsequent blocks constitute this mandatory guide.` },
             { id: uid(), role: 'user', title: 'bot persona', enabled: true, content: '<{{char}}\'s Persona>{bot_persona}<{{char}}\'s Persona>'},
             { id: uid(), role: 'user', title: 'scenario', enabled: true, content: '<Scenario>{scenario}</Scenario>' },
             { id: uid(), role: 'user', title: 'user persona', enabled: true, 'content': '<User Persona>{user_persona}</User Persona>'},
-            { id: uid(), role: 'user', title: 'summary', enabled: true, 'content': '<summary>{summary}</summary>'},
+            { id: uid(), role: 'user', title: 'summary', enabled: true, content: '<summary>{summary}</summary>'},
+            { id: uid(), role: 'system', title: 'final', enabled: true, content: 'FINAL COMMAND: This is the end of the prompt. Re-read and apply ALL preceding rules and instructions without fail. Your performance depends on your total compliance with every directive provided by the user.' },
             { id: uid(), role: 'system', title: 'chat history', enabled: true, content: '{chat_history}', isPinned: true },
         ]
     };
