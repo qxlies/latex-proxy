@@ -92,114 +92,54 @@ function buildUrl(p) {
   return u.toString()
 }
 
-function processPlaceholders(messages) {
-  if (!Array.isArray(messages) || messages.length === 0 || messages[0].role !== 'system') {
-    return messages
-  }
+function extractPlaceholders(content) {
+  const placeholders = {};
+  if (!content) return placeholders;
 
-  const content = messages[0].content
-  const placeholders = {}
+  const personaRegex = /<([\s\S]*?'s Persona)>([\s\S]*?)<\/\1>/;
+  const scenarioRegex = /<Scenario>([\s\S]*?)<\/Scenario>/;
+  const userPersonaRegex = /<UserPersona>([\s\S]*?)<\/UserPersona>/;
+  const summaryRegex = /<summary>([\s\S]*?)<\/summary>/;
+  const userName = /<\!user>([\s\S]*?)<\/user>/;
+  const characterName = /<character>([\s\S]*?)<\/character>/;
 
-  const personaRegex = /<([a-zA-Z0-9_ ]+?'s Persona)>([\s\S]*?)<\/\1>/
-  const scenarioRegex = /<Scenario>([\s\S]*?)<\/Scenario>/
-  const userPersonaRegex = /<UserPersona>([\s\S]*?)<\/UserPersona>/
-  const summaryRegex = /<summary>([\s\S]*?)<\/summary>/
-  
-  const userName = /<user>([a-zA-Z0-9_ ]+?)<\/user>/
-  const characterName = /<character>([a-zA-Z0-9_ ]+?)<\/character>/
+  const botPersonaMatch = content.match(personaRegex);
+  if (botPersonaMatch) placeholders.bot_persona = botPersonaMatch[2].trim();
 
-  const botPersonaMatch = content.match(personaRegex)
-  if (botPersonaMatch) {
-    placeholders.bot_persona = botPersonaMatch[2].trim()
-  }
+  const scenarioMatch = content.match(scenarioRegex);
+  if (scenarioMatch) placeholders.scenario = scenarioMatch[1].trim();
 
-  const scenarioMatch = content.match(scenarioRegex)
-  if (scenarioMatch) {
-    placeholders.scenario = scenarioMatch[1].trim()
-  }
+  const userPersonaMatch = content.match(userPersonaRegex);
+  if (userPersonaMatch) placeholders.user_persona = userPersonaMatch[1].trim();
 
-  const userPersonaMatch = content.match(userPersonaRegex)
-  if (userPersonaMatch) {
-    placeholders.user_persona = userPersonaMatch[1].trim()
-  }
+  const summaryRegexMatch = content.match(summaryRegex);
+  if (summaryRegexMatch) placeholders.summary = summaryRegexMatch[1].trim();
 
-  const summaryRegexMatch = content.match(summaryRegex)
-  if (summaryRegexMatch) {
-    placeholders.summary = summaryRegexMatch[1].trim()
-  }
+  const userNameMatch = content.match(userName);
+  if (userNameMatch) placeholders.user = userNameMatch[1].trim();
 
-  const userNameMatch = content.match(userName)
-  if (userNameMatch) {
-    placeholders.user = userNameMatch[1].trim()
-  }
+  const characterNameMatch = content.match(characterName);
+  if (characterNameMatch) placeholders.char = characterNameMatch[1].trim();
 
-  const characterNameMatch = content.match(characterName)
-  if (characterNameMatch) {
-    placeholders.char = characterNameMatch[1].trim()
-  }
+  return placeholders;
+}
 
-  let systemPrompt = content
-    .replace(personaRegex, '')
-    .replace(scenarioRegex, '')
-    .replace(userPersonaRegex, '')
-    .replace(summaryRegex, '')
-    .replace(userName, '')
-    .replace(characterName, '')
-    .trim()
-
+function applyPlaceholders(content, placeholders) {
+  let processedContent = content;
   for (const key in placeholders) {
-    let placeholder
-    if (key == 'user' || key == 'char') {
-      placeholder = new RegExp(`{{${key}}}`, 'g')
-    } else {
-      placeholder = new RegExp(`{${key}}`, 'g')
-    }
-    systemPrompt = systemPrompt.replace(placeholder, placeholders[key] || '')
+    const placeholder = new RegExp(`{{?${key}}}?`, 'g');
+    processedContent = processedContent.replace(placeholder, placeholders[key] || '');
   }
 
   const finalLines = [];
-  const lines = systemPrompt.split('\n');
+  const lines = processedContent.split('\n');
   for (const line of lines) {
     if (line.includes('{summary}') && (!placeholders.summary || placeholders.summary.trim() === '')) {
       continue;
     }
     finalLines.push(line);
   }
-
-  const finalSystemPrompt = finalLines.join('\n');
-
-  const newFirstMessage = { ...messages[0], content: finalSystemPrompt }
-  return [newFirstMessage, ...messages.slice(1)]
-}
-
-function buildProfilePrompt(profile) {
-  if (!profile || !profile.tabs || profile.tabs.length === 0) {
-    return '';
-  }
-  const enabledTabs = profile.tabs.filter(t => t.enabled);
-  return enabledTabs.map(t => `<${t.role}>\n${t.content || ''}\n</${t.role}>`).join('\n');
-}
-
-function parseSpecialSystemPrompt(messages) {
-  if (!Array.isArray(messages) || messages.length === 0) {
-    return messages
-  }
-  const firstMessage = messages[0]
-  if (firstMessage.role !== 'system' || !firstMessage.content.includes('<system>')) {
-    return messages
-  }
-  const newMessages = []
-  const regex = /<(system|user)>(.*?)<\/\1>/gs
-  const matches = firstMessage.content.matchAll(regex)
-  for (const match of matches) {
-    const role = match[1]
-    const content = match[2].trim()
-    newMessages.push({ role, content })
-  }
-  if (newMessages.length > 0) {
-    return [...newMessages, ...messages.slice(1)]
-  }
-  return messages
+  return finalLines.join('\n');
 }
 
 const Profile = require('./models/Profile');
@@ -254,36 +194,35 @@ app.post('/v1/chat/completions', authMiddleware, async (req, res) => {
           throw new Error(`Unsupported model in free provider: ${body.model}`);
       }
     }
-
-    const finalMessages = [];
+    
     const userMessages = body.messages.filter(m => m.role !== 'system');
     const lastUserMessage = userMessages.pop();
     const incomingSystem = body.messages.find(m => m.role === 'system');
+    
+    const placeholders = incomingSystem ? extractPlaceholders(incomingSystem.content) : {};
 
+    const finalMessages = [];
     activeProfile.tabs.forEach(tab => {
         if (!tab.enabled) return;
 
-        if (tab.content === '{chat_history}') {
+        let content = tab.content;
+        if (content === '{chat_history}') {
             finalMessages.push(...userMessages);
         } else {
+            content = applyPlaceholders(content, placeholders);
             finalMessages.push({
                 role: tab.role,
-                content: tab.content
+                content: content
             });
         }
     });
 
-    if (incomingSystem) {
-        const processed = processPlaceholders([incomingSystem]);
-        if (processed && processed[0] && processed[0].content) {
-            finalMessages.unshift(processed[0]);
-        }
-    }
-    
     body.messages = finalMessages;
     if (lastUserMessage) {
         body.messages.push(lastUserMessage);
     }
+
+    body.messages = body.messages.filter(m => m.content && m.content.trim() !== '.' && m.content.trim() !== '');
 
     const isStream = body && body.stream === true;
     const url = new URL(proxyEndpoint);
