@@ -306,15 +306,17 @@ app.post('/v1/chat/completions', authMiddleware, async (req, res) => {
     if (!isStream || !ctUp.toLowerCase().startsWith('text/event-stream')) {
         const text = await r.text();
         try {
-            const responseData = JSON.parse(text);
-            await Log.create({
-                userId: req.user.userId,
-                profileId: activeProfile._id,
-                statusCode: r.status,
-                statusText: r.statusText,
-                responseBody: responseData,
-                usage: responseData.usage,
-            });
+            if (user.isLoggingEnabled) {
+               const responseData = JSON.parse(text);
+               await Log.create({
+                   userId: req.user.userId,
+                   profileId: activeProfile._id,
+                   statusCode: r.status,
+                   statusText: r.statusText,
+                   responseBody: responseData,
+                   usage: responseData.usage,
+               });
+            }
         } catch (e) { }
         res.send(text);
         return;
@@ -352,18 +354,20 @@ app.post('/v1/chat/completions', authMiddleware, async (req, res) => {
     }
     
     try {
-        await Log.create({
-            userId: req.user.userId,
-            profileId: activeProfile._id,
-            statusCode: r.status,
-            statusText: r.statusText,
-            responseBody: { 
-                stream_ended: true, 
-                full_content: accumulatedContent,
-                usage: usage 
-            },
-            usage: usage,
-        });
+       if (user.isLoggingEnabled) {
+           await Log.create({
+               userId: req.user.userId,
+               profileId: activeProfile._id,
+               statusCode: r.status,
+               statusText: r.statusText,
+               responseBody: {
+                   stream_ended: true,
+                   full_content: accumulatedContent,
+                   usage: usage
+               },
+               usage: usage,
+           });
+       }
     } catch(e) {
         console.error("Failed to log stream response:", e);
     }

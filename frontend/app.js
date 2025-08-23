@@ -41,6 +41,7 @@ const copyUserApiKeyBtn = document.getElementById('copyUserApiKey');
 const copySetupTextEl = document.getElementById('copySetupText');
 const logsContainer = document.getElementById('logsContainer');
 const logsPagination = document.getElementById('logsPagination');
+const loggingToggle = document.getElementById('loggingToggle');
 
 
 let state = {
@@ -633,6 +634,19 @@ document.getElementById('toggleTab').addEventListener('click', () => {
    if (t && p && t.content !== '{chat_history}') toggleTab(t, p);
 });
 
+loggingToggle.addEventListener('change', async (e) => {
+   const isLoggingEnabled = e.target.checked;
+   try {
+       await fetchAPI('/api/users/me/logging', {
+           method: 'PUT',
+           body: JSON.stringify({ isLoggingEnabled }),
+       });
+       state.user.isLoggingEnabled = isLoggingEnabled;
+   } catch (error) {
+       alert(error.message);
+   }
+});
+
 tabRoleEl.addEventListener('change', debouncedEditorChange);
 tabTitleEl.addEventListener('input', debouncedEditorChange);
 tabContentEl.addEventListener('input', debouncedEditorChange);
@@ -861,6 +875,7 @@ async function initApp() {
         fillEditor();
         fillProfileSettings();
         fetchLogs();
+       loggingToggle.checked = user.isLoggingEnabled;
     } catch (error) {
         alert(error.message);
         localStorage.removeItem('token');

@@ -186,7 +186,13 @@
     </section>
 
     <section class="panel logs-panel">
-        <h3>Request Logs</h3>
+       <div class="logs-header">
+           <h3>Request Logs</h3>
+           <label class="toggle-switch">
+               <input type="checkbox" id="loggingToggle">
+               <span class="slider"></span>
+           </label>
+       </div>
         <div id="logsContainer"></div>
         <div id="logsPagination"></div>
     </section>

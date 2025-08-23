@@ -32,6 +32,10 @@ const UserSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Profile',
     default: null,
+  },
+  isLoggingEnabled: {
+   type: Boolean,
+   default: false,
   }
 });
 
