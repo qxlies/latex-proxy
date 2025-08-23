@@ -834,3 +834,20 @@ select:focus {
   background: var(--btn-blue-fill1);
   border-color: var(--btn-blue-brd1);
 }
+
+.spoiler {
+   border: 1px solid var(--border);
+   border-radius: 12px;
+   padding: 12px;
+   background: rgba(255,255,255,.02);
+}
+
+.spoiler summary {
+   cursor: pointer;
+   font-weight: 600;
+   color: var(--muted);
+}
+
+.spoiler[open] summary {
+   margin-bottom: 12px;
+}

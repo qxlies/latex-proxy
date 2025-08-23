@@ -35,6 +35,7 @@ const setApiActiveProfileBtn = document.getElementById('setApiActiveProfile');
 const proxyEndpointInput = document.getElementById('proxyEndpoint');
 const proxyApiKeyInput = document.getElementById('proxyApiKey');
 const modelInput = document.getElementById('model');
+const extraParamsInput = document.getElementById('extraParams');
 const userApiKeyEl = document.getElementById('userApiKey');
 const copyUserApiKeyBtn = document.getElementById('copyUserApiKey');
 const copySetupTextEl = document.getElementById('copySetupText');
@@ -430,6 +431,9 @@ function fillProfileSettings() {
     proxyEndpointInput.value = p.proxyEndpoint || 'https://openrouter.ai/api/v1';
     proxyApiKeyInput.value = p.proxyApiKey || '';
     modelInput.value = p.model || '';
+    if (window.extraParamsEditor) {
+       window.extraParamsEditor.setValue(p.extraParams || '{}');
+    }
 }
 
 async function onProfileSettingsChange() {
@@ -440,11 +444,13 @@ async function onProfileSettingsChange() {
         proxyEndpoint: proxyEndpointInput.value,
         proxyApiKey: proxyApiKeyInput.value,
         model: modelInput.value,
+        extraParams: window.extraParamsEditor.getValue(),
     };
 
     p.proxyEndpoint = updatedFields.proxyEndpoint;
     p.proxyApiKey = updatedFields.proxyApiKey;
     p.model = updatedFields.model;
+    p.extraParams = updatedFields.extraParams;
 
     try {
         await fetchAPI(`/api/profiles/${p._id}`, {
@@ -806,7 +812,18 @@ function renderPagination(totalPages, currentPage) {
     }
 }
 
+function initCodeMirror() {
+   window.extraParamsEditor = CodeMirror.fromTextArea(extraParamsInput, {
+       lineNumbers: true,
+       theme: 'darcula',
+       mode: {name: "javascript", json: true},
+       lineWrapping: true,
+   });
+   window.extraParamsEditor.on('change', debouncedProfileSettingsChange);
+}
+
 async function initApp() {
+   initCodeMirror();
     try {
         const [{ profiles }, { user }] = await Promise.all([
             fetchAPI('/api/profiles'),

@@ -18,7 +18,7 @@ router.put('/:id', async (req, res) => {
   const {
     user: { userId },
     params: { id: profileId },
-    body: { name, proxyEndpoint, proxyApiKey, model, activeTabId, tabs },
+    body: { name, proxyEndpoint, proxyApiKey, model, activeTabId, tabs, extraParams },
   } = req;
 
   const updateData = {};
@@ -28,6 +28,7 @@ router.put('/:id', async (req, res) => {
   if (model) updateData.model = model;
   if (activeTabId) updateData.activeTabId = activeTabId;
   if (tabs) updateData.tabs = tabs;
+  if (extraParams) updateData.extraParams = extraParams;
 
 
   if (name === '') {

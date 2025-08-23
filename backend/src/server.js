@@ -217,12 +217,23 @@ app.post('/v1/chat/completions', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'Active profile not found' });
     }
 
-    let { proxyEndpoint, proxyApiKey, model } = activeProfile;
+    let { proxyEndpoint, proxyApiKey, model, extraParams } = activeProfile;
     if (!proxyEndpoint || !proxyApiKey) {
       return res.status(400).json({ error: 'Proxy endpoint or API key not configured in the active profile' });
     }
 
-    const body = { ...req.body };
+   let extra = {};
+   try {
+       if (extraParams) {
+           extra = JSON.parse(extraParams);
+       }
+   } catch (e) {
+       console.error("Invalid extraParams JSON:", e);
+   }
+
+    const body = { ...req.body, ...extra };
+
+    console.log(body);
 
     if (model) {
       body.model = model;
