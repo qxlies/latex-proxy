@@ -233,8 +233,6 @@ app.post('/v1/chat/completions', authMiddleware, async (req, res) => {
 
     const body = { ...req.body, ...extra };
 
-    console.log(body);
-
     if (model) {
       body.model = model;
     }
