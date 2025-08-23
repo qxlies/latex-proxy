@@ -1,12 +1,14 @@
 FROM node:18-alpine
 
-WORKDIR /root/putter_api/lapi/backend
-COPY backend/package*.json ./
-RUN npm install --legacy-peer-deps
+WORKDIR /app/backend
 
-WORKDIR /root/putter_api/lapi
+COPY backend/package*.json ./
+
+RUN npm install --production --legacy-peer-deps
+
+WORKDIR /app
 COPY . .
 
-EXPOSE 3000
+EXPOSE 3035
 
 CMD ["npm", "--prefix", "backend", "start"]
