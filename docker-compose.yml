@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  latex-proxy:
+    build: .
+    container_name: latex-proxy
+    restart: always
+    ports:
+      - "${PORT:-3000}:${PORT:-3000}"
+    environment:
+      PORT: ${PORT:-3000}
+      MONGO_URI: ${MONGO_URI}
+      JWT_SECRET: ${JWT_SECRET}
+      ENDPOINT: ${ENDPOINT}
+      API_KEY: ${API_KEY}
+    networks:
+      - caddy_net
+
+networks:
+  caddy_net:
+    external: true
