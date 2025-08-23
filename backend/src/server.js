@@ -257,6 +257,7 @@ app.post('/v1/chat/completions', authMiddleware, async (req, res) => {
 
     const finalMessages = [];
     const userMessages = body.messages.filter(m => m.role !== 'system');
+    const lastUserMessage = userMessages.pop();
     const incomingSystem = body.messages.find(m => m.role === 'system');
 
     activeProfile.tabs.forEach(tab => {
@@ -280,6 +281,9 @@ app.post('/v1/chat/completions', authMiddleware, async (req, res) => {
     }
     
     body.messages = finalMessages;
+    if (lastUserMessage) {
+        body.messages.push(lastUserMessage);
+    }
 
     const isStream = body && body.stream === true;
     const url = new URL(proxyEndpoint);
