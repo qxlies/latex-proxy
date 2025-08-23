@@ -1,6 +1,6 @@
 FROM node:18-alpine
 
-WORKDIR /usr/src/app
+WORKDIR /root/putter_api/lapi/
 
 COPY package*.json ./
 COPY backend/package*.json ./backend/

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   latex-proxy:
     build: .
@@ -15,6 +13,8 @@ services:
       API_KEY: ${API_KEY}
     networks:
       - caddy_net
+    volumes:
+      - ./:/root/putter_api/lapi/
 
 networks:
   caddy_net:
