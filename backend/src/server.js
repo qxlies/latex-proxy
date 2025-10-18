@@ -173,6 +173,12 @@ app.post('/v1/chat/completions', authMiddleware, async (req, res) => {
           model = provider.model;
           break;
         
+        case 'aistudio':
+          proxyEndpoint = 'https://generativelanguage.googleapis.com/v1beta/openai';
+          proxyApiKey = provider.apiKey;
+          model = provider.model;
+          break;
+        
         case 'free':
           proxyEndpoint = FREE_ENDPOINT;
           proxyApiKey = FREE_API_KEY;

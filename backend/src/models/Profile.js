@@ -22,12 +22,13 @@ const ProfileSchema = new mongoose.Schema({
   providerType: {
     type: String,
     default: 'openrouter',
-    enum: ['openrouter', 'free', 'custom'],
+    enum: ['openrouter', 'aistudio', 'free', 'custom'],
   },
   providers: {
     type: Object,
     default: {
       openrouter: { apiKey: '', model: '' },
+      aistudio: { apiKey: '', model: 'gemini-2.5-pro' },
       free: { model: 'gemini-2.5-pro' },
       custom: { endpoint: '', apiKey: '', model: '' }
     }

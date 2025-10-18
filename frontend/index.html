@@ -127,6 +127,12 @@
           <h4>OpenRouter</h4>
           <p>Access 200+ AI models via OpenRouter API</p>
         </div>
+
+        <div class="provider-card aistudio" data-provider="aistudio">
+          <iconify-icon icon="lucide:git-pull-request-arrow"></iconify-icon>
+          <h4>Google AI Studio</h4>
+          <p>Access to latest Gemini models</p>
+        </div>
         
         <div class="provider-card free" data-provider="free">
           <iconify-icon icon="lucide:zap"></iconify-icon>
@@ -163,6 +169,22 @@
             >
             <div id="openrouterModelDropdown" class="model-dropdown"></div>
           </div>
+        </div>
+      </div>
+
+      <!-- AI Studio Settings -->
+      <div id="aistudioSettings" class="provider-settings">
+        <div class="provider-header">
+          <iconify-icon icon="lucide:git-pull-request-arrow"></iconify-icon>
+          <h3>AI Studio Configuration</h3>
+        </div>
+        <div class="field">
+          <span>API Key</span>
+          <input id="aistudioApiKey" type="password" placeholder="...">
+        </div>
+        <div class="field">
+          <span>Model</span>
+          <input id="aistudioModel" type="text" placeholder="gemini-2.5-pro">
         </div>
       </div>
 

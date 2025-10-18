@@ -51,6 +51,7 @@ const providerCards = document.querySelectorAll('.provider-card');
 const openrouterSettings = document.getElementById('openrouterSettings');
 const freeSettings = document.getElementById('freeSettings');
 const customSettings = document.getElementById('customSettings');
+const aistudioSettings = document.getElementById('aistudioSettings');
 const openrouterApiKeyInput = document.getElementById('openrouterApiKey');
 const modelSearchInput = document.getElementById('openrouterModel');
 const modelDropdown = document.getElementById('openrouterModelDropdown');
@@ -58,6 +59,8 @@ const customEndpointInput = document.getElementById('customEndpoint');
 const customApiKeyInput = document.getElementById('customApiKey');
 const customModelInput = document.getElementById('customModel');
 const freeModelSelect = document.getElementById('freeModel');
+const aistudioApiKeyInput = document.getElementById('aistudioApiKey');
+const aistudioModelInput = document.getElementById('aistudioModel');
 
 
 let state = {
@@ -128,6 +131,9 @@ async function exportProfile() {
     if (profileToExport.providers.openrouter) {
       delete profileToExport.providers.openrouter.apiKey;
     }
+    if (profileToExport.providers.aistudio) {
+      delete profileToExport.providers.aistudio.apiKey;
+    }
     if (profileToExport.providers.custom) {
       delete profileToExport.providers.custom.apiKey;
       delete profileToExport.providers.custom.endpoint;
@@ -179,6 +185,10 @@ async function handleFileImport(event) {
                     openrouter: {
                         apiKey: '',
                         model: importedProfile.providers.openrouter?.model || ''
+                    },
+                    aistudio: {
+                        apiKey: '',
+                        model: importedProfile.providers.aistudio?.model || 'gemini-2.5-pro'
                     },
                     free: {
                         model: importedProfile.providers.free?.model || 'gemini-2.5-pro'
@@ -758,12 +768,14 @@ async function switchProvider(providerType) {
     if (!p) return;
 
     if (!p.providers) {
-        p.providers = {
-            openrouter: { apiKey: '', model: '' },
-            free: { model: 'gemini-2.5-pro' },
-            custom: { endpoint: '', apiKey: '', model: '' }
-        };
+        p.providers = {};
     }
+    
+    // Ensure all provider structures exist
+    if (!p.providers.openrouter) p.providers.openrouter = { apiKey: '', model: '' };
+    if (!p.providers.aistudio) p.providers.aistudio = { apiKey: '', model: 'gemini-2.5-pro' };
+    if (!p.providers.free) p.providers.free = { model: 'gemini-2.5-pro' };
+    if (!p.providers.custom) p.providers.custom = { endpoint: '', apiKey: '', model: '' };
 
     p.providerType = providerType;
 
@@ -777,6 +789,7 @@ async function switchProvider(providerType) {
     });
 
     if (openrouterSettings) openrouterSettings.classList.toggle('active', providerType === 'openrouter');
+    if (aistudioSettings) aistudioSettings.classList.toggle('active', providerType === 'aistudio');
     if (freeSettings) freeSettings.classList.toggle('active', providerType === 'free');
     if (customSettings) customSettings.classList.toggle('active', providerType === 'custom');
 
@@ -786,6 +799,9 @@ async function switchProvider(providerType) {
         }
         if (openrouterApiKeyInput) openrouterApiKeyInput.value = p.providers.openrouter.apiKey || '';
         if (modelSearchInput) modelSearchInput.value = p.providers.openrouter.model || '';
+    } else if (providerType === 'aistudio') {
+        if (aistudioApiKeyInput) aistudioApiKeyInput.value = p.providers.aistudio.apiKey || '';
+        if (aistudioModelInput) aistudioModelInput.value = p.providers.aistudio.model || 'gemini-2.5-pro';
     } else if (providerType === 'free') {
         if (freeModelSelect) freeModelSelect.value = p.providers.free.model || 'gemini-2.5-pro';
     } else if (providerType === 'custom') {
@@ -802,16 +818,21 @@ async function saveProviderSettings() {
     if (!p) return;
 
     if (!p.providers) {
-        p.providers = {
-            openrouter: { apiKey: '', model: '' },
-            free: { model: 'gemini-2.5-pro' },
-            custom: { endpoint: '', apiKey: '', model: '' }
-        };
+        p.providers = {};
     }
+
+    if (!p.providers.openrouter) p.providers.openrouter = { apiKey: '', model: '' };
+    if (!p.providers.aistudio) p.providers.aistudio = { apiKey: '', model: 'gemini-2.5-pro' };
+    if (!p.providers.free) p.providers.free = { model: 'gemini-2.5-pro' };
+    if (!p.providers.custom) p.providers.custom = { endpoint: '', apiKey: '', model: '' };
 
     if (p.providerType === 'openrouter') {
         p.providers.openrouter.apiKey = openrouterApiKeyInput ? openrouterApiKeyInput.value : '';
         p.providers.openrouter.model = modelSearchInput ? modelSearchInput.value : '';
+    } else if (p.providerType === 'aistudio') {
+        p.providers.aistudio.apiKey = aistudioApiKeyInput ? aistudioApiKeyInput.value : '';
+        p.providers.aistudio.model = aistudioModelInput ? aistudioModelInput.value : 'gemini-2.5-pro';
+        console.log('AI Studio settings:', p.providers.aistudio);
     } else if (p.providerType === 'free') {
         p.providers.free.model = freeModelSelect ? freeModelSelect.value : 'gemini-2.5-pro';
     } else if (p.providerType === 'custom') {
@@ -829,6 +850,10 @@ async function saveProviderSettings() {
         updatedFields.proxyEndpoint = 'https://openrouter.ai/api/v1';
         updatedFields.proxyApiKey = p.providers.openrouter.apiKey;
         updatedFields.model = p.providers.openrouter.model;
+    } else if (p.providerType === 'aistudio') {
+        updatedFields.proxyEndpoint = 'https://generativelanguage.googleapis.com/v1beta/openai';
+        updatedFields.proxyApiKey = p.providers.aistudio.apiKey;
+        updatedFields.model = p.providers.aistudio.model;
     } else if (p.providerType === 'free') {
         updatedFields.proxyEndpoint = 'free';
         updatedFields.proxyApiKey = 'free';
@@ -843,12 +868,16 @@ async function saveProviderSettings() {
 
     Object.assign(p, updatedFields);
 
+    console.log('Saving provider settings:', updatedFields);
+
     try {
         await fetchAPI(`/api/profiles/${p._id}`, {
             method: 'PUT',
             body: JSON.stringify(updatedFields),
         });
+        console.log('Provider settings saved successfully');
     } catch (error) {
+        console.error('Failed to save provider settings:', error);
         alert(error.message);
     }
 }
@@ -860,11 +889,15 @@ function fillProfileSettings() {
     }
 
     if (!p.providers) {
-        p.providers = {
-            openrouter: { apiKey: '', model: '' },
-            free: { model: 'gemini-2.5-pro' },
-            custom: { endpoint: '', apiKey: '', model: '' }
-        };
+        p.providers = {};
+    }
+
+    if (!p.providers.openrouter) p.providers.openrouter = { apiKey: '', model: '' };
+    if (!p.providers.aistudio) p.providers.aistudio = { apiKey: '', model: 'gemini-2.5-pro' };
+    if (!p.providers.free) p.providers.free = { model: 'gemini-2.5-pro' };
+    if (!p.providers.custom) p.providers.custom = { endpoint: '', apiKey: '', model: '' };
+
+    if (!p.providerType) {
 
         if (p.proxyEndpoint === 'free') {
             p.providerType = 'free';
@@ -873,6 +906,10 @@ function fillProfileSettings() {
             p.providerType = 'openrouter';
             p.providers.openrouter.apiKey = p.proxyApiKey || '';
             p.providers.openrouter.model = p.model || '';
+        } else if (p.proxyEndpoint && p.proxyEndpoint.includes('generativelanguage.googleapis.com')) {
+            p.providerType = 'aistudio';
+            p.providers.aistudio.apiKey = p.proxyApiKey || '';
+            p.providers.aistudio.model = p.model || 'gemini-2.5-pro';
         } else {
             p.providerType = 'custom';
             p.providers.custom.endpoint = p.proxyEndpoint || '';
@@ -1199,6 +1236,8 @@ const debouncedProviderSettingsChange = () => {
 };
 
 if (openrouterApiKeyInput) openrouterApiKeyInput.addEventListener('input', debouncedProviderSettingsChange);
+if (aistudioApiKeyInput) aistudioApiKeyInput.addEventListener('input', debouncedProviderSettingsChange);
+if (aistudioModelInput) aistudioModelInput.addEventListener('input', debouncedProviderSettingsChange);
 if (customEndpointInput) customEndpointInput.addEventListener('input', debouncedProviderSettingsChange);
 if (customApiKeyInput) customApiKeyInput.addEventListener('input', debouncedProviderSettingsChange);
 if (customModelInput) customModelInput.addEventListener('input', debouncedProviderSettingsChange);
