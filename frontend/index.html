@@ -70,41 +70,141 @@
     </section>
 
     <section class="panel profiles">
-      <div class="profiles-head">
-        <div class="profiles-title-wrap">
-          <div class="profiles-title">Profiles</div>
-          <button id="setApiActiveProfile" class="btn btn-blue">Set for API</button>
-          <button id="importProfile" class="btn btn-green">Import</button>
-          <button id="exportProfile" class="btn btn-yellow">Export</button>
+      <div class="profiles-compact">
+        <div class="profiles-title">Current Profile</div>
+        <div class="current-profile-display" id="currentProfileDisplay">
+          <span class="current-profile-name">No profile selected</span>
+          <span class="current-profile-badge api-active-indicator hidden" id="currentProfileBadge">API</span>
         </div>
-        <div class="profiles-actions">
-          <button id="newProfile" class="btn btn-green">Create</button>
-          <button id="renameProfile" class="btn btn-blue">Rename</button>
-          <button id="copyProfile" class="btn btn-blue">Clone</button>
-          <button id="deleteProfile" class="btn btn-red">Delete</button>
-          <input type="file" id="importFileInput" accept=".json" style="display: none;">
-        </div>
-      </div>
-      <div class="profiles-scroller">
-        <div class="profiles-row" id="profilesRow"></div>
+        <button id="openProfilesModal" class="btn btn-blue">
+          <iconify-icon icon="lucide:settings"></iconify-icon>
+          Manage Profiles
+        </button>
+        <input type="file" id="importFileInput" accept=".json" style="display: none;">
       </div>
     </section>
 
-    <section class="panel profile-settings">
-      <div class="grid">
-        <label class="field">
-          <span>Proxy Endpoint</span>
-          <input id="proxyEndpoint" type="text" placeholder="https://openrouter.ai/api/v1">
-        </label>
-        <label class="field">
-          <span>Proxy API Key</span>
-          <input id="proxyApiKey" type="password" placeholder="sk-or-...">
-        </label>
-        <label class="field">
-           <span>Model</span>
-           <input id="model" type="text" placeholder="deepseek-r1-0528">
-         </label>
+    <!-- Profiles Modal -->
+    <div id="profilesModal" class="modal hidden">
+      <div class="modal-overlay" id="modalOverlay"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Profile Management</h2>
+          <button class="modal-close" id="closeProfilesModal" title="Close">
+            <iconify-icon icon="lucide:x"></iconify-icon>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="modal-actions">
+            <button id="newProfile" class="btn btn-green">
+              <iconify-icon icon="lucide:plus"></iconify-icon>
+              Create
+            </button>
+            <button id="importProfile" class="btn btn-green">
+              <iconify-icon icon="lucide:upload"></iconify-icon>
+              Import
+            </button>
+            <button id="exportProfile" class="btn btn-yellow">
+              <iconify-icon icon="lucide:download"></iconify-icon>
+              Export
+            </button>
+            <button id="setApiActiveProfile" class="btn btn-blue">
+              <iconify-icon icon="lucide:check"></iconify-icon>
+              Set for API
+            </button>
+          </div>
+          <div class="profiles-list" id="profilesList"></div>
+        </div>
       </div>
+    </div>
+
+    <section class="panel profile-settings">
+      <h3 style="margin: 0 0 16px; font-size: 18px; font-weight: 600;">API Configuration</h3>
+      
+      <div class="provider-selector">
+        <div class="provider-card openrouter" data-provider="openrouter">
+          <iconify-icon icon="lucide:globe"></iconify-icon>
+          <h4>OpenRouter</h4>
+          <p>Access 200+ AI models via OpenRouter API</p>
+        </div>
+        
+        <div class="provider-card free" data-provider="free">
+          <iconify-icon icon="lucide:zap"></iconify-icon>
+          <h4>Free Access</h4>
+          <p>Free models without API key</p>
+        </div>
+        
+        <div class="provider-card custom" data-provider="custom">
+          <iconify-icon icon="lucide:settings-2"></iconify-icon>
+          <h4>Custom Proxy</h4>
+          <p>Use your own OpenAI-compatible endpoint</p>
+        </div>
+      </div>
+
+      <!-- OpenRouter Settings -->
+      <div id="openrouterSettings" class="provider-settings">
+        <div class="provider-header">
+          <iconify-icon icon="lucide:globe"></iconify-icon>
+          <h3>OpenRouter Configuration</h3>
+        </div>
+        <div class="field">
+          <span>API Key</span>
+          <input id="openrouterApiKey" type="password" placeholder="sk-or-v1-...">
+        </div>
+        <div class="field">
+          <span>Model</span>
+          <div class="model-search-wrapper">
+            <input
+              id="openrouterModel"
+              type="text"
+              placeholder="Search models..."
+              autocomplete="off"
+              class="model-search"
+            >
+            <div id="openrouterModelDropdown" class="model-dropdown"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Free Provider Settings -->
+      <div id="freeSettings" class="provider-settings">
+        <div class="provider-header">
+          <iconify-icon icon="lucide:zap"></iconify-icon>
+          <h3>Free Access Configuration</h3>
+        </div>
+        <div class="free-notice">
+          <p><strong>Free access provided by together.ai</strong><br>No API key required. Choose your model below:</p>
+        </div>
+        <div class="field">
+          <span>Model</span>
+          <select id="freeModel">
+            <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+            <option value="gemini-flash-latest">Gemini Flash Latest</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Custom Proxy Settings -->
+      <div id="customSettings" class="provider-settings">
+        <div class="provider-header">
+          <iconify-icon icon="lucide:settings-2"></iconify-icon>
+          <h3>Custom Proxy Configuration</h3>
+        </div>
+        <div class="field">
+          <span>Endpoint URL</span>
+          <input id="customEndpoint" type="text" placeholder="https://api.example.com/v1/chat/completions">
+          <small style="font-size: 11px; color: var(--muted); display: block; margin-top: 4px;">Full URL including /chat/completions</small>
+        </div>
+        <div class="field">
+          <span>API Key</span>
+          <input id="customApiKey" type="password" placeholder="Your API key">
+        </div>
+        <div class="field">
+          <span>Model</span>
+          <input id="customModel" type="text" placeholder="gpt-4, claude-3, etc.">
+        </div>
+      </div>
+
      <details class="spoiler" style="margin-top: 14px;">
        <summary>Extra Params</summary>
        <div class="field" style="margin-top: 8px;">
@@ -167,10 +267,24 @@
           <div class="grid">
             <label class="field">
               <span>Role</span>
-              <select id="tabRole">
-                <option value="system">system</option>
-                <option value="user">user</option>
-              </select>
+              <div class="custom-select-wrapper">
+                <div class="custom-select" id="tabRoleCustom">
+                  <div class="custom-select-trigger">
+                    <span>system</span>
+                    <iconify-icon icon="lucide:chevron-down"></iconify-icon>
+                  </div>
+                  <div class="custom-select-options">
+                    <div class="custom-select-option" data-value="system">
+                      <span class="role-badge system">S</span>
+                      <span>system</span>
+                    </div>
+                    <div class="custom-select-option" data-value="user">
+                      <span class="role-badge user">U</span>
+                      <span>user</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </label>
             <label class="field">
               <span>Name</span>

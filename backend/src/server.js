@@ -157,19 +157,53 @@ app.post('/v1/chat/completions', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'Active profile not found' });
     }
 
-    let { proxyEndpoint, proxyApiKey, model, extraParams } = activeProfile;
+    // Use new provider system or fall back to legacy fields
+    let proxyEndpoint, proxyApiKey, model;
+    const providerType = activeProfile.providerType || 'openrouter';
+    const providers = activeProfile.providers;
+
+    if (providers && providers[providerType]) {
+      // New provider system
+      const provider = providers[providerType];
+      
+      switch (providerType) {
+        case 'openrouter':
+          proxyEndpoint = 'https://openrouter.ai/api/v1';
+          proxyApiKey = provider.apiKey;
+          model = provider.model;
+          break;
+        
+        case 'free':
+          proxyEndpoint = FREE_ENDPOINT;
+          proxyApiKey = FREE_API_KEY;
+          model = provider.model;
+          break;
+        
+        case 'custom':
+          proxyEndpoint = provider.endpoint;
+          proxyApiKey = provider.apiKey;
+          model = provider.model;
+          break;
+      }
+    } else {
+      // Legacy system fallback
+      proxyEndpoint = activeProfile.proxyEndpoint;
+      proxyApiKey = activeProfile.proxyApiKey;
+      model = activeProfile.model;
+    }
+
     if (!proxyEndpoint || !proxyApiKey) {
       return res.status(400).json({ error: 'Proxy endpoint or API key not configured in the active profile' });
     }
 
-   let extra = {};
-   try {
-       if (extraParams) {
-           extra = JSON.parse(extraParams);
-       }
-   } catch (e) {
-       console.error("Invalid extraParams JSON:", e);
-   }
+    let extra = {};
+    try {
+      if (activeProfile.extraParams) {
+        extra = JSON.parse(activeProfile.extraParams);
+      }
+    } catch (e) {
+      console.error("Invalid extraParams JSON:", e);
+    }
 
     const body = { ...req.body, ...extra };
 
@@ -177,17 +211,15 @@ app.post('/v1/chat/completions', authMiddleware, async (req, res) => {
       body.model = model;
     }
 
-    if (proxyEndpoint === 'free') {
-      proxyEndpoint = FREE_ENDPOINT;
-      proxyApiKey = FREE_API_KEY;
-
+    // Handle free provider model mapping
+    if (providerType === 'free' || proxyEndpoint === FREE_ENDPOINT) {
       switch (body.model) {
-        case 'deepseek-r1-0528':
-          body.model = 'deepseek-r1-0528-p:8';
+        case 'gemini-2.5-pro':
+          body.model = 'gemini-2.5-pro';
           break;
 
-        case 'deepseek-v3-0324':
-          body.model = 'deepseek-v3-0324-p:8';
+        case 'gemini-flash-latest':
+          body.model = 'gemini-flash-latest';
           break;
 
         default:
@@ -225,8 +257,14 @@ app.post('/v1/chat/completions', authMiddleware, async (req, res) => {
     body.messages = body.messages.filter(m => m.content && m.content.trim() !== '.' && m.content.trim() !== '');
 
     const isStream = body && body.stream === true;
-    const url = new URL(proxyEndpoint);
-    url.pathname = path.join(url.pathname, 'chat/completions');
+
+    let url;
+    if (providerType === 'custom') {
+      url = new URL(proxyEndpoint);
+    } else {
+      url = new URL(proxyEndpoint);
+      url.pathname = path.join(url.pathname, 'chat/completions');
+    }
     
     const headers = {
       authorization: `Bearer ${proxyApiKey}`,

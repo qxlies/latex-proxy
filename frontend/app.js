@@ -20,14 +20,17 @@ const endpointUrlEl = document.getElementById('endpointUrl')
 const copyEndpointBtn = document.getElementById('copyEndpoint')
 const tabsWrap = document.getElementById('tabs')
 const addTabBtn = document.getElementById('addTab')
-const tabRoleEl = document.getElementById('tabRole')
+const tabRoleCustom = document.getElementById('tabRoleCustom')
 const tabTitleEl = document.getElementById('tabTitle')
 const tabContentEl = document.getElementById('tabContent')
-const profilesRow = document.getElementById('profilesRow')
+const currentProfileDisplay = document.getElementById('currentProfileDisplay')
+const currentProfileBadge = document.getElementById('currentProfileBadge')
+const openProfilesModalBtn = document.getElementById('openProfilesModal')
+const profilesModal = document.getElementById('profilesModal')
+const closeProfilesModalBtn = document.getElementById('closeProfilesModal')
+const modalOverlay = document.getElementById('modalOverlay')
+const profilesList = document.getElementById('profilesList')
 const newProfileBtn = document.getElementById('newProfile')
-const copyProfileBtn = document.getElementById('copyProfile')
-const renameProfileBtn = document.getElementById('renameProfile')
-const deleteProfileBtn = document.getElementById('deleteProfile')
 const exportProfileBtn = document.getElementById('exportProfile')
 const importProfileBtn = document.getElementById('importProfile');
 const importFileInput = document.getElementById('importFileInput');
@@ -42,6 +45,19 @@ const copySetupTextEl = document.getElementById('copySetupText');
 const logsContainer = document.getElementById('logsContainer');
 const logsPagination = document.getElementById('logsPagination');
 const loggingToggle = document.getElementById('loggingToggle');
+
+// Provider elements
+const providerCards = document.querySelectorAll('.provider-card');
+const openrouterSettings = document.getElementById('openrouterSettings');
+const freeSettings = document.getElementById('freeSettings');
+const customSettings = document.getElementById('customSettings');
+const openrouterApiKeyInput = document.getElementById('openrouterApiKey');
+const modelSearchInput = document.getElementById('openrouterModel');
+const modelDropdown = document.getElementById('openrouterModelDropdown');
+const customEndpointInput = document.getElementById('customEndpoint');
+const customApiKeyInput = document.getElementById('customApiKey');
+const customModelInput = document.getElementById('customModel');
+const freeModelSelect = document.getElementById('freeModel');
 
 
 let state = {
@@ -184,32 +200,235 @@ function currentTab() {
     return p.tabs.find(t => t.id === p.activeTabId);
 }
 
-function renderProfiles() {
-    profilesRow.innerHTML = '';
-    const sortedProfiles = [...state.profiles].sort((a, b) => {
-        if (state.user && a._id === state.user.activeProfileId) return -1;
-        if (state.user && b._id === state.user.activeProfileId) return 1;
-        return 0;
-    });
-
-    sortedProfiles.forEach(p => {
-        const el = document.createElement('button');
-        el.type = 'button';
-        el.className = 'profile-pill' + (p._id === state.selectedProfileId ? ' active' : '') + (state.user && state.user.activeProfileId === p._id ? ' api-active' : '');
-        el.textContent = p.name;
-        el.title = p.name;
-        el.dataset.id = p._id;
-        
+function updateCurrentProfileDisplay() {
+    const p = currentProfile();
+    const nameEl = currentProfileDisplay.querySelector('.current-profile-name');
+    
+    if (p) {
+        nameEl.textContent = p.name;
         if (state.user && state.user.activeProfileId === p._id) {
-            const activeIndicator = document.createElement('span');
-            activeIndicator.textContent = 'API';
-            activeIndicator.className = 'api-active-indicator';
-            el.appendChild(activeIndicator);
+            currentProfileBadge.classList.remove('hidden');
+        } else {
+            currentProfileBadge.classList.add('hidden');
+        }
+    } else {
+        nameEl.textContent = 'No profile selected';
+        currentProfileBadge.classList.add('hidden');
+    }
+}
+
+function renderProfiles() {
+    profilesList.innerHTML = '';
+
+    let sortedProfiles = [...state.profiles];
+    
+    if (state.user && state.user.profileOrder && state.user.profileOrder.length > 0) {
+        sortedProfiles = state.user.profileOrder
+            .map(id => state.profiles.find(p => p._id === id))
+            .filter(Boolean);
+
+        const orderedIds = new Set(state.user.profileOrder);
+        const newProfiles = state.profiles.filter(p => !orderedIds.has(p._id));
+        sortedProfiles = [...sortedProfiles, ...newProfiles];
+    } else {
+        sortedProfiles.sort((a, b) => {
+            if (state.user && a._id === state.user.activeProfileId) return -1;
+            if (state.user && b._id === state.user.activeProfileId) return 1;
+            return 0;
+        });
+    }
+
+    sortedProfiles.forEach((p, index) => {
+        const el = document.createElement('div');
+        el.className = 'profile-item';
+        el.dataset.id = p._id;
+        el.dataset.index = index;
+        
+        if (p._id === state.selectedProfileId) {
+            el.classList.add('active');
+        }
+        if (state.user && state.user.activeProfileId === p._id) {
+            el.classList.add('api-active');
         }
 
-        el.addEventListener('click', () => setActiveProfile(p._id));
-        profilesRow.appendChild(el);
+        const dragHandle = document.createElement('div');
+        dragHandle.className = 'profile-drag-handle';
+        dragHandle.innerHTML = '<span></span><span></span>';
+        dragHandle.draggable = false;
+
+        const info = document.createElement('div');
+        info.className = 'profile-info';
+        
+        const name = document.createElement('div');
+        name.className = 'profile-name';
+        name.textContent = p.name;
+        
+        const meta = document.createElement('div');
+        meta.className = 'profile-meta';
+        const tabCount = p.tabs ? p.tabs.length : 0;
+        meta.textContent = `${tabCount} tabs`;
+        
+        info.appendChild(name);
+        info.appendChild(meta);
+
+        const badges = document.createElement('div');
+        badges.className = 'profile-badges';
+        
+        if (p._id === state.selectedProfileId) {
+            const selectedBadge = document.createElement('span');
+            selectedBadge.className = 'profile-badge selected';
+            selectedBadge.textContent = 'Selected';
+            badges.appendChild(selectedBadge);
+        }
+        
+        if (state.user && state.user.activeProfileId === p._id) {
+            const apiBadge = document.createElement('span');
+            apiBadge.className = 'profile-badge api';
+            apiBadge.textContent = 'API';
+            badges.appendChild(apiBadge);
+        }
+
+        const actions = document.createElement('div');
+        actions.className = 'profile-actions';
+        
+        const renameBtn = document.createElement('button');
+        renameBtn.className = 'icon-btn btn-blue';
+        renameBtn.title = 'Rename';
+        renameBtn.innerHTML = '<iconify-icon icon="lucide:edit"></iconify-icon>';
+        renameBtn.onclick = (e) => {
+            e.stopPropagation();
+            renameProfile(p);
+        };
+        
+        const cloneBtn = document.createElement('button');
+        cloneBtn.className = 'icon-btn btn-blue';
+        cloneBtn.title = 'Clone';
+        cloneBtn.innerHTML = '<iconify-icon icon="lucide:copy"></iconify-icon>';
+        cloneBtn.onclick = (e) => {
+            e.stopPropagation();
+            copyProfile(p);
+        };
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'icon-btn btn-red';
+        deleteBtn.title = 'Delete';
+        deleteBtn.innerHTML = '<iconify-icon icon="lucide:trash-2"></iconify-icon>';
+        deleteBtn.onclick = (e) => {
+            e.stopPropagation();
+            deleteProfile(p);
+        };
+        
+        actions.appendChild(renameBtn);
+        actions.appendChild(cloneBtn);
+        actions.appendChild(deleteBtn);
+
+        el.appendChild(dragHandle);
+        el.appendChild(info);
+        el.appendChild(badges);
+        el.appendChild(actions);
+        
+        el.addEventListener('click', (e) => {
+            if (!e.target.closest('.profile-actions')) {
+                setActiveProfile(p._id);
+            }
+        });
+
+        // Drag and drop
+        el.draggable = true;
+        el.addEventListener('dragstart', handleDragStart);
+        el.addEventListener('dragover', handleDragOver);
+        el.addEventListener('drop', handleDrop);
+        el.addEventListener('dragend', handleDragEnd);
+        
+        profilesList.appendChild(el);
     });
+    
+    updateCurrentProfileDisplay();
+}
+
+let draggedElement = null;
+
+function handleDragStart(e) {
+    draggedElement = this;
+    this.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', this.innerHTML);
+}
+
+function handleDragOver(e) {
+    if (e.preventDefault) {
+        e.preventDefault();
+    }
+    e.dataTransfer.dropEffect = 'move';
+    
+    const afterElement = getDragAfterElement(profilesList, e.clientY);
+    if (afterElement == null) {
+        profilesList.appendChild(draggedElement);
+    } else {
+        profilesList.insertBefore(draggedElement, afterElement);
+    }
+    
+    return false;
+}
+
+function handleDrop(e) {
+    if (e.stopPropagation) {
+        e.stopPropagation();
+    }
+    return false;
+}
+
+async function handleDragEnd(e) {
+    this.classList.remove('dragging');
+    
+    const items = Array.from(profilesList.children);
+    const newOrder = items.map(item => item.dataset.id);
+    
+    const reorderedProfiles = newOrder.map(id =>
+        state.profiles.find(p => p._id === id)
+    ).filter(Boolean);
+    
+    state.profiles = reorderedProfiles;
+    draggedElement = null;
+
+    await saveProfileOrder(newOrder);
+}
+
+async function saveProfileOrder(profileOrder) {
+    try {
+        await fetchAPI('/api/users/me/profile-order', {
+            method: 'PUT',
+            body: JSON.stringify({ profileOrder }),
+        });
+        state.user.profileOrder = profileOrder;
+    } catch (error) {
+        console.error('Failed to save profile order:', error);
+    }
+}
+
+function getDragAfterElement(container, y) {
+    const draggableElements = [...container.querySelectorAll('.profile-item:not(.dragging)')];
+    
+    return draggableElements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        
+        if (offset < 0 && offset > closest.offset) {
+            return { offset: offset, element: child };
+        } else {
+            return closest;
+        }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
+function openProfilesModal() {
+    profilesModal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeProfilesModal() {
+    profilesModal.classList.add('hidden');
+    document.body.style.overflow = '';
 }
 
 async function setActiveProfile(id) {
@@ -270,40 +489,40 @@ async function createDefaultProfile() {
 }
 
 
-async function renameProfile() {
-    const p = currentProfile();
+async function renameProfile(profile) {
+    const p = profile || currentProfile();
     if (!p) return;
     const newName = prompt('New profile name', p.name);
     if (!newName || newName === p.name) return;
 
     try {
-        const { profile } = await fetchAPI(`/api/profiles/${p._id}`, {
+        const { profile: updatedProfile } = await fetchAPI(`/api/profiles/${p._id}`, {
             method: 'PUT',
             body: JSON.stringify({ name: newName }),
         });
-        p.name = profile.name;
+        p.name = updatedProfile.name;
         renderProfiles();
     } catch (error) {
         alert(error.message);
     }
 }
 
-async function copyProfile() {
-    const p = currentProfile();
+async function copyProfile(profile) {
+    const p = profile || currentProfile();
     if (!p) return;
     try {
-        const { profile } = await fetchAPI(`/api/profiles/${p._id}/clone`, {
+        const { profile: newProfile } = await fetchAPI(`/api/profiles/${p._id}/clone`, {
             method: 'POST',
         });
-        state.profiles.push(profile);
-        setActiveProfile(profile._id);
+        state.profiles.push(newProfile);
+        setActiveProfile(newProfile._id);
     } catch (error) {
         alert(error.message);
     }
 }
 
-async function deleteProfile() {
-    const p = currentProfile();
+async function deleteProfile(profile) {
+    const p = profile || currentProfile();
     if (!p) return;
     if (state.profiles.length <= 1) {
         alert("You can't delete the last profile.");
@@ -409,29 +628,211 @@ async function addTab() {
 function fillEditor() {
     const t = currentTab();
     if (!t) {
-        tabRoleEl.value = 'system';
+        setCustomSelectValue('system');
         tabTitleEl.value = '';
         tabContentEl.value = '';
         return;
     }
-    tabRoleEl.value = t.role;
+    setCustomSelectValue(t.role);
     tabTitleEl.value = t.title;
     tabContentEl.value = t.content;
-   tabContentEl.readOnly = t.content === '{chat_history}';
-   tabRoleEl.disabled = t.content === '{chat_history}';
+    tabContentEl.readOnly = t.content === '{chat_history}';
+
+    if (t.content === '{chat_history}') {
+        tabRoleCustom && tabRoleCustom.classList.add('disabled');
+    } else {
+        tabRoleCustom && tabRoleCustom.classList.remove('disabled');
+    }
+}
+
+// Provider System
+let openrouterModels = [];
+
+async function fetchOpenRouterModels() {
+    try {
+        const response = await fetch('https://openrouter.ai/api/v1/models');
+        const data = await response.json();
+        openrouterModels = data.data || [];
+        return openrouterModels;
+    } catch (error) {
+        console.error('Failed to fetch OpenRouter models:', error);
+        return [];
+    }
+}
+
+function filterModels(query) {
+    if (!query) return openrouterModels;
+    const lowerQuery = query.toLowerCase();
+    return openrouterModels.filter(model =>
+        model.id.toLowerCase().includes(lowerQuery) ||
+        model.name.toLowerCase().includes(lowerQuery)
+    );
+}
+
+function renderModelDropdown(models) {
+    modelDropdown.innerHTML = '';
+    if (models.length === 0) {
+        modelDropdown.innerHTML = '<div class="model-option"><div class="model-option-name">No models found</div></div>';
+        return;
+    }
+    
+    models.slice(0, 50).forEach(model => {
+        const option = document.createElement('div');
+        option.className = 'model-option';
+        option.innerHTML = `
+            <div class="model-option-name">${model.name}</div>
+            <div class="model-option-id">${model.id}</div>
+        `;
+        option.onclick = () => selectModel(model);
+        modelDropdown.appendChild(option);
+    });
+}
+
+function selectModel(model) {
+    modelSearchInput.value = model.id;
+    modelDropdown.classList.remove('active');
+    saveProviderSettings();
+}
+
+function setSectionVisible(el, visible) {
+    if (!el) return;
+    el.classList.toggle('hidden', !visible);
+}
+
+async function switchProvider(providerType) {
+    const p = currentProfile();
+    if (!p) return;
+
+    if (!p.providers) {
+        p.providers = {
+            openrouter: { apiKey: '', model: '' },
+            free: { model: 'gemini-2.5-pro' },
+            custom: { endpoint: '', apiKey: '', model: '' }
+        };
+    }
+
+    p.providerType = providerType;
+
+    document.querySelectorAll('.provider-card').forEach(card => {
+        const cardType = card.dataset.provider;
+        if (cardType === providerType) {
+            card.classList.add('selected');
+        } else {
+            card.classList.remove('selected');
+        }
+    });
+
+    if (openrouterSettings) openrouterSettings.classList.toggle('active', providerType === 'openrouter');
+    if (freeSettings) freeSettings.classList.toggle('active', providerType === 'free');
+    if (customSettings) customSettings.classList.toggle('active', providerType === 'custom');
+
+    if (providerType === 'openrouter') {
+        if (openrouterModels.length === 0) {
+            await fetchOpenRouterModels();
+        }
+        if (openrouterApiKeyInput) openrouterApiKeyInput.value = p.providers.openrouter.apiKey || '';
+        if (modelSearchInput) modelSearchInput.value = p.providers.openrouter.model || '';
+    } else if (providerType === 'free') {
+        if (freeModelSelect) freeModelSelect.value = p.providers.free.model || 'gemini-2.5-pro';
+    } else if (providerType === 'custom') {
+        if (customEndpointInput) customEndpointInput.value = p.providers.custom.endpoint || '';
+        if (customApiKeyInput) customApiKeyInput.value = p.providers.custom.apiKey || '';
+        if (customModelInput) customModelInput.value = p.providers.custom.model || '';
+    }
+
+    await saveProviderSettings();
+}
+
+async function saveProviderSettings() {
+    const p = currentProfile();
+    if (!p) return;
+
+    if (!p.providers) {
+        p.providers = {
+            openrouter: { apiKey: '', model: '' },
+            free: { model: 'gemini-2.5-pro' },
+            custom: { endpoint: '', apiKey: '', model: '' }
+        };
+    }
+
+    if (p.providerType === 'openrouter') {
+        p.providers.openrouter.apiKey = openrouterApiKeyInput ? openrouterApiKeyInput.value : '';
+        p.providers.openrouter.model = modelSearchInput ? modelSearchInput.value : '';
+    } else if (p.providerType === 'free') {
+        p.providers.free.model = freeModelSelect ? freeModelSelect.value : 'gemini-2.5-pro';
+    } else if (p.providerType === 'custom') {
+        p.providers.custom.endpoint = customEndpointInput ? customEndpointInput.value : '';
+        p.providers.custom.apiKey = customApiKeyInput ? customApiKeyInput.value : '';
+        p.providers.custom.model = customModelInput ? customModelInput.value : '';
+    }
+
+    let updatedFields = {
+        providerType: p.providerType || 'custom',
+        providers: p.providers
+    };
+
+    if (p.providerType === 'openrouter') {
+        updatedFields.proxyEndpoint = 'https://openrouter.ai/api/v1';
+        updatedFields.proxyApiKey = p.providers.openrouter.apiKey;
+        updatedFields.model = p.providers.openrouter.model;
+    } else if (p.providerType === 'free') {
+        updatedFields.proxyEndpoint = 'free';
+        updatedFields.proxyApiKey = 'free';
+        updatedFields.model = p.providers.free.model;
+    } else {
+        updatedFields.proxyEndpoint = p.providers.custom.endpoint;
+        updatedFields.proxyApiKey = p.providers.custom.apiKey;
+        updatedFields.model = p.providers.custom.model;
+    }
+
+    updatedFields.extraParams = window.extraParamsEditor ? window.extraParamsEditor.getValue() : '{}';
+
+    Object.assign(p, updatedFields);
+
+    try {
+        await fetchAPI(`/api/profiles/${p._id}`, {
+            method: 'PUT',
+            body: JSON.stringify(updatedFields),
+        });
+    } catch (error) {
+        alert(error.message);
+    }
 }
 
 function fillProfileSettings() {
     const p = currentProfile();
     if (!p) {
-        proxyEndpointInput.value = '';
-        proxyApiKeyInput.value = '';
-        modelInput.value = '';
         return;
     }
-    proxyEndpointInput.value = p.proxyEndpoint || 'https://openrouter.ai/api/v1';
-    proxyApiKeyInput.value = p.proxyApiKey || '';
-    modelInput.value = p.model || '';
+
+    if (!p.providers) {
+        p.providers = {
+            openrouter: { apiKey: '', model: '' },
+            free: { model: 'gemini-2.5-pro' },
+            custom: { endpoint: '', apiKey: '', model: '' }
+        };
+
+        if (p.proxyEndpoint === 'free') {
+            p.providerType = 'free';
+            p.providers.free.model = p.model || 'gemini-2.5-pro';
+        } else if (p.proxyEndpoint && p.proxyEndpoint.includes('openrouter')) {
+            p.providerType = 'openrouter';
+            p.providers.openrouter.apiKey = p.proxyApiKey || '';
+            p.providers.openrouter.model = p.model || '';
+        } else {
+            p.providerType = 'custom';
+            p.providers.custom.endpoint = p.proxyEndpoint || '';
+            p.providers.custom.apiKey = p.proxyApiKey || '';
+            p.providers.custom.model = p.model || '';
+        }
+    }
+    
+    if (!p.providerType) {
+        p.providerType = 'custom';
+    }
+
+    switchProvider(p.providerType);
+
     if (window.extraParamsEditor) {
        window.extraParamsEditor.setValue(p.extraParams || '{}');
     }
@@ -442,15 +843,9 @@ async function onProfileSettingsChange() {
     if (!p) return;
 
     const updatedFields = {
-        proxyEndpoint: proxyEndpointInput.value,
-        proxyApiKey: proxyApiKeyInput.value,
-        model: modelInput.value,
-        extraParams: window.extraParamsEditor.getValue(),
+        extraParams: window.extraParamsEditor ? window.extraParamsEditor.getValue() : '{}',
     };
 
-    p.proxyEndpoint = updatedFields.proxyEndpoint;
-    p.proxyApiKey = updatedFields.proxyApiKey;
-    p.model = updatedFields.model;
     p.extraParams = updatedFields.extraParams;
 
     try {
@@ -470,7 +865,7 @@ async function onEditorChange() {
     if (!p || !t) return;
 
     const updatedFields = {
-        role: tabRoleEl.value,
+        role: getCustomSelectValue(),
         title: tabTitleEl.value,
         content: tabContentEl.value,
     };
@@ -580,11 +975,10 @@ async function moveTab(tabId, direction) {
 }
 
 // --- Event Listeners ---
+openProfilesModalBtn.addEventListener('click', openProfilesModal);
+closeProfilesModalBtn.addEventListener('click', closeProfilesModal);
+modalOverlay.addEventListener('click', closeProfilesModal);
 newProfileBtn.addEventListener('click', createUserProfile);
-copyProfileBtn.addEventListener('click', copyProfile);
-renameProfileBtn.addEventListener('click', renameProfile);
-deleteProfileBtn.addEventListener('click', deleteProfile);
-copyEndpointBtn.addEventListener('click', copyEndpoint);
 exportProfileBtn.addEventListener('click', exportProfile);
 importProfileBtn.addEventListener('click', importProfile);
 importFileInput.addEventListener('change', handleFileImport);
@@ -593,6 +987,7 @@ setApiActiveProfileBtn.addEventListener('click', () => {
     const p = currentProfile();
     if(p) setApiActiveProfile(p._id);
 });
+copyEndpointBtn.addEventListener('click', copyEndpoint);
 copyUserApiKeyBtn.addEventListener('click', copyUserApiKey);
 copySetupTextEl.addEventListener('click', () => {
     const text = copySetupTextEl.textContent;
@@ -634,6 +1029,57 @@ document.getElementById('toggleTab').addEventListener('click', () => {
    if (t && p && t.content !== '{chat_history}') toggleTab(t, p);
 });
 
+// Custom Select Logic
+function getCustomSelectValue() {
+    if (!tabRoleCustom) return 'system';
+    const selected = tabRoleCustom.querySelector('.custom-select-option.selected');
+    return selected ? selected.dataset.value : 'system';
+}
+
+function setCustomSelectValue(value) {
+    if (!tabRoleCustom) return;
+    
+    const trigger = tabRoleCustom.querySelector('.custom-select-trigger span');
+    const options = tabRoleCustom.querySelectorAll('.custom-select-option');
+    
+    options.forEach(opt => {
+        if (opt.dataset.value === value) {
+            opt.classList.add('selected');
+            if (trigger) trigger.textContent = value;
+        } else {
+            opt.classList.remove('selected');
+        }
+    });
+}
+
+if (tabRoleCustom) {
+    const trigger = tabRoleCustom.querySelector('.custom-select-trigger');
+    const options = tabRoleCustom.querySelectorAll('.custom-select-option');
+    
+    trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!tabRoleCustom.classList.contains('disabled')) {
+            tabRoleCustom.classList.toggle('active');
+        }
+    });
+    
+    options.forEach(option => {
+        option.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const value = option.dataset.value;
+            setCustomSelectValue(value);
+            tabRoleCustom.classList.remove('active');
+            debouncedEditorChange();
+        });
+    });
+    
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.custom-select')) {
+            tabRoleCustom.classList.remove('active');
+        }
+    });
+}
+
 loggingToggle.addEventListener('change', async (e) => {
    const isLoggingEnabled = e.target.checked;
    try {
@@ -647,7 +1093,6 @@ loggingToggle.addEventListener('change', async (e) => {
    }
 });
 
-tabRoleEl.addEventListener('change', debouncedEditorChange);
 tabTitleEl.addEventListener('input', debouncedEditorChange);
 tabContentEl.addEventListener('input', debouncedEditorChange);
 
@@ -656,9 +1101,54 @@ const debouncedProfileSettingsChange = () => {
     editorTimeout = setTimeout(onProfileSettingsChange, 500);
 };
 
-proxyEndpointInput.addEventListener('input', debouncedProfileSettingsChange);
-proxyApiKeyInput.addEventListener('input', debouncedProfileSettingsChange);
-modelInput.addEventListener('input', debouncedProfileSettingsChange);
+document.querySelectorAll('.provider-card').forEach(card => {
+    card.addEventListener('click', () => {
+        const providerType = card.dataset.provider;
+        if (providerType) {
+            switchProvider(providerType);
+        }
+    });
+});
+
+if (modelSearchInput) {
+    modelSearchInput.addEventListener('input', (e) => {
+        const query = e.target.value;
+        const filtered = filterModels(query);
+        renderModelDropdown(filtered);
+        if (query || filtered.length > 0) {
+            modelDropdown && modelDropdown.classList.add('active');
+        } else {
+            modelDropdown && modelDropdown.classList.remove('active');
+        }
+    });
+
+    modelSearchInput.addEventListener('focus', async () => {
+        if (openrouterModels.length === 0) {
+            await fetchOpenRouterModels();
+        }
+        const filtered = filterModels(modelSearchInput.value);
+        renderModelDropdown(filtered);
+        modelDropdown && modelDropdown.classList.add('active');
+    });
+}
+
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.model-search-wrapper')) {
+        modelDropdown && modelDropdown.classList.remove('active');
+    }
+});
+
+let providerSettingsTimeout;
+const debouncedProviderSettingsChange = () => {
+    clearTimeout(providerSettingsTimeout);
+    providerSettingsTimeout = setTimeout(saveProviderSettings, 500);
+};
+
+if (openrouterApiKeyInput) openrouterApiKeyInput.addEventListener('input', debouncedProviderSettingsChange);
+if (customEndpointInput) customEndpointInput.addEventListener('input', debouncedProviderSettingsChange);
+if (customApiKeyInput) customApiKeyInput.addEventListener('input', debouncedProviderSettingsChange);
+if (customModelInput) customModelInput.addEventListener('input', debouncedProviderSettingsChange);
+if (freeModelSelect) freeModelSelect.addEventListener('change', saveProviderSettings);
 
 
 // --- Auth Logic ---
@@ -817,13 +1307,82 @@ function renderLogs(logs) {
 
 function renderPagination(totalPages, currentPage) {
     logsPagination.innerHTML = '';
-    for (let i = 1; i <= totalPages; i++) {
-        const pageButton = document.createElement('button');
-        pageButton.textContent = i;
-        pageButton.className = `btn btn-ghost ${i == currentPage ? 'active' : ''}`;
-        pageButton.addEventListener('click', () => fetchLogs(i));
-        logsPagination.appendChild(pageButton);
+    
+    if (totalPages <= 1) return;
+
+    totalPages = Number(totalPages);
+    currentPage = Number(currentPage);
+    
+    const maxButtons = 7;
+    const pages = [];
+    
+    if (totalPages <= maxButtons) {
+        for (let i = 1; i <= totalPages; i++) {
+            pages.push(i);
+        }
+    } else {
+        pages.push(1);
+        
+        let startPage = Math.max(2, currentPage - 1);
+        let endPage = Math.min(totalPages - 1, currentPage + 1);
+
+        if (currentPage <= 3) {
+            startPage = 2;
+            endPage = Math.min(5, totalPages - 1);
+        }
+
+        if (currentPage >= totalPages - 2) {
+            startPage = Math.max(2, totalPages - 4);
+            endPage = totalPages - 1;
+        }
+
+        if (startPage > 2) {
+            pages.push('...');
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            pages.push(i);
+        }
+
+        if (endPage < totalPages - 1) {
+            pages.push('...');
+        }
+        
+        pages.push(totalPages);
     }
+
+    const prevBtn = document.createElement('button');
+    prevBtn.className = 'btn btn-ghost pagination-arrow';
+    prevBtn.innerHTML = '<iconify-icon icon="lucide:chevron-left"></iconify-icon>';
+    prevBtn.disabled = currentPage <= 1;
+    if (currentPage > 1) {
+        prevBtn.addEventListener('click', () => fetchLogs(currentPage - 1));
+    }
+    logsPagination.appendChild(prevBtn);
+
+    pages.forEach(page => {
+        if (page === '...') {
+            const ellipsis = document.createElement('span');
+            ellipsis.className = 'pagination-ellipsis';
+            ellipsis.textContent = '...';
+            logsPagination.appendChild(ellipsis);
+        } else {
+            const pageButton = document.createElement('button');
+            pageButton.textContent = page;
+            pageButton.className = `btn btn-ghost ${page == currentPage ? 'active' : ''}`;
+            pageButton.addEventListener('click', () => fetchLogs(page));
+            logsPagination.appendChild(pageButton);
+        }
+    });
+
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'btn btn-ghost pagination-arrow';
+    nextBtn.innerHTML = '<iconify-icon icon="lucide:chevron-right"></iconify-icon>';
+    nextBtn.disabled = currentPage >= totalPages;
+    if (currentPage < totalPages) {
+        nextBtn.addEventListener('click', () => fetchLogs(currentPage + 1));
+    }
+    logsPagination.appendChild(nextBtn);
 }
 
 function initCodeMirror() {
@@ -857,6 +1416,11 @@ async function initApp() {
                });
            }
        }
+
+        if (!user.profileOrder || user.profileOrder.length === 0) {
+            const initialOrder = profiles.map(p => p._id);
+            await saveProfileOrder(initialOrder);
+        }
 
         if (profiles.length > 0) {
            if (user.activeProfileId && profiles.some(p => p._id === user.activeProfileId)) {
@@ -899,11 +1463,15 @@ const textarea = document.getElementById('tabContent');
 const tabs = document.getElementById('tabs');
 
 const resizeObserver = new ResizeObserver(() => {
-  tabs.style.maxHeight = (textarea.offsetHeight+72) + 'px';
+  const editorGrid = document.querySelector('.editor .grid');
+  const gridHeight = editorGrid ? editorGrid.offsetHeight : 60;
+  tabs.style.maxHeight = (textarea.offsetHeight + gridHeight + 12) + 'px';
 });
 
 resizeObserver.observe(textarea);
 
-tabs.style.maxHeight = (textarea.offsetHeight+72) + 'px';
+const editorGrid = document.querySelector('.editor .grid');
+const gridHeight = editorGrid ? editorGrid.offsetHeight : 60;
+tabs.style.maxHeight = (textarea.offsetHeight + gridHeight + 12) + 'px';
 
 checkAuth();

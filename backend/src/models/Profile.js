@@ -19,6 +19,20 @@ const ProfileSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  providerType: {
+    type: String,
+    default: 'openrouter',
+    enum: ['openrouter', 'free', 'custom'],
+  },
+  providers: {
+    type: Object,
+    default: {
+      openrouter: { apiKey: '', model: '' },
+      free: { model: 'gemini-2.5-pro' },
+      custom: { endpoint: '', apiKey: '', model: '' }
+    }
+  },
+  // Legacy fields for backward compatibility
   proxyEndpoint: {
     type: String,
     default: 'https://openrouter.ai/api/v1',
@@ -29,7 +43,7 @@ const ProfileSchema = new mongoose.Schema({
   },
   model: {
     type: String,
-    default: 'gpt-4o',
+    default: 'deepseek/deepseek-r1-0528:free',
   },
   extraParams: {
      type: String,

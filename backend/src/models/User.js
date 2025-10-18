@@ -36,6 +36,10 @@ const UserSchema = new mongoose.Schema({
   isLoggingEnabled: {
    type: Boolean,
    default: false,
+  },
+  profileOrder: {
+   type: [mongoose.Schema.Types.ObjectId],
+   default: [],
   }
 });
 

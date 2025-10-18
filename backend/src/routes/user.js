@@ -48,4 +48,21 @@ router.put('/me/logging', async (req, res) => {
    }
 });
 
+router.put('/me/profile-order', async (req, res) => {
+   const { profileOrder } = req.body;
+   try {
+       const user = await User.findByIdAndUpdate(
+           req.user.userId,
+           { profileOrder },
+           { new: true }
+       );
+       if (!user) {
+           return res.status(404).send('User not found');
+       }
+       res.status(200).json({ profileOrder: user.profileOrder });
+   } catch (error) {
+       res.status(500).json({ error: error.message });
+   }
+});
+
 module.exports = router;
