@@ -922,13 +922,15 @@ function fillProfileSettings() {
         p.providerType = 'custom';
     }
 
-    switchProvider(p.providerType);
-
+    // IMPORTANT: Set extraParams BEFORE calling switchProvider to prevent overwriting
     if (window.extraParamsEditor) {
        isSettingExtraParams = true;
        window.extraParamsEditor.setValue(p.extraParams || '{}');
        setTimeout(() => { isSettingExtraParams = false; }, 100);
     }
+
+    // This will call saveProviderSettings, but now extraParams is already set
+    switchProvider(p.providerType);
 }
 
 async function onProfileSettingsChange() {
