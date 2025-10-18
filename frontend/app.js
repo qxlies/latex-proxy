@@ -117,12 +117,22 @@ async function exportProfile() {
   if (!p) return;
 
   const profileToExport = JSON.parse(JSON.stringify(p));
+
   delete profileToExport.proxyEndpoint;
   delete profileToExport.proxyApiKey;
   delete profileToExport.userId;
   delete profileToExport._id;
   delete profileToExport.__v;
 
+  if (profileToExport.providers) {
+    if (profileToExport.providers.openrouter) {
+      delete profileToExport.providers.openrouter.apiKey;
+    }
+    if (profileToExport.providers.custom) {
+      delete profileToExport.providers.custom.apiKey;
+      delete profileToExport.providers.custom.endpoint;
+    }
+  }
 
   const blob = new Blob([JSON.stringify(profileToExport, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
@@ -155,7 +165,33 @@ async function handleFileImport(event) {
 
             importedProfile.name = `${importedProfile.name} (imported)`;
 
-            await _createProfileOnBackend(importedProfile.name, importedProfile.tabs);
+            // Create profile with tabs and additional settings
+            const newProfileData = {
+                name: importedProfile.name,
+                tabs: importedProfile.tabs,
+                providerType: importedProfile.providerType || 'custom',
+                extraParams: importedProfile.extraParams || '{}',
+            };
+            
+            // Import provider settings (without API keys)
+            if (importedProfile.providers) {
+                newProfileData.providers = {
+                    openrouter: {
+                        apiKey: '',
+                        model: importedProfile.providers.openrouter?.model || ''
+                    },
+                    free: {
+                        model: importedProfile.providers.free?.model || 'gemini-2.5-pro'
+                    },
+                    custom: {
+                        endpoint: importedProfile.providers.custom?.endpoint || '',
+                        apiKey: '',
+                        model: importedProfile.providers.custom?.model || ''
+                    }
+                };
+            }
+
+            await _createProfileOnBackendWithSettings(newProfileData);
 
         } catch (error) {
             alert(`Failed to import profile: ${error.message}`);
@@ -437,6 +473,24 @@ async function setActiveProfile(id) {
     renderTabs();
     fillEditor();
     fillProfileSettings();
+}
+
+async function _createProfileOnBackendWithSettings(profileData) {
+    try {
+        const { profile } = await fetchAPI('/api/profiles', {
+            method: 'POST',
+            body: JSON.stringify(profileData),
+        });
+        state.profiles.push(profile);
+        await setActiveProfile(profile._id);
+        if (!state.user.activeProfileId) {
+            await setApiActiveProfile(profile._id);
+        } else {
+            renderProfiles();
+        }
+    } catch (error) {
+        alert(error.message);
+    }
 }
 
 async function _createProfileOnBackend(name, tabs = null) {
