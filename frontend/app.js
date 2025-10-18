@@ -925,7 +925,9 @@ function fillProfileSettings() {
     switchProvider(p.providerType);
 
     if (window.extraParamsEditor) {
+       isSettingExtraParams = true;
        window.extraParamsEditor.setValue(p.extraParams || '{}');
+       setTimeout(() => { isSettingExtraParams = false; }, 100);
     }
 }
 
@@ -1478,6 +1480,8 @@ function renderPagination(totalPages, currentPage) {
     logsPagination.appendChild(nextBtn);
 }
 
+let isSettingExtraParams = false;
+
 function initCodeMirror() {
    window.extraParamsEditor = CodeMirror.fromTextArea(extraParamsInput, {
        lineNumbers: true,
@@ -1485,7 +1489,11 @@ function initCodeMirror() {
        mode: {name: "javascript", json: true},
        lineWrapping: true,
    });
-   window.extraParamsEditor.on('change', debouncedProfileSettingsChange);
+   window.extraParamsEditor.on('change', () => {
+       if (!isSettingExtraParams) {
+           debouncedProfileSettingsChange();
+       }
+   });
 }
 
 async function initApp() {
