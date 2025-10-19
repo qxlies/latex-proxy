@@ -1519,7 +1519,8 @@ function createPlaceholdersTab(placeholders) {
         scenario: 'Scenario',
         user_persona: 'User Persona',
         summary: 'Summary',
-        lorebooks: 'Lorebooks'
+        lorebooks: 'Lorebooks',
+        example_dialogs: 'Example Dialogs'
     };
     
     let items = '';

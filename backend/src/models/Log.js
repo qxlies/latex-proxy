@@ -34,6 +34,7 @@ const LogSchema = new mongoose.Schema({
     user_persona: { type: String },
     summary: { type: String },
     lorebooks: { type: String },
+    example_dialogs: { type: String },
     user: { type: String },
     char: { type: String },
   },
