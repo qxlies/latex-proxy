@@ -114,6 +114,7 @@ function extractPlaceholders(content) {
   const scenarioRegex = /<Scenario>([\s\S]*?)<\/Scenario>/;
   const userPersonaRegex = /<UserPersona>([\s\S]*?)<\/UserPersona>/;
   const summaryRegex = /<summary>([\s\S]*?)<\/summary>/;
+  const exampleDialogsRegex = /<example_dialogs>([\s\S]*?)<\/example_dialogs>/;
 
   const botPersonaMatch = processedContent.match(personaRegex);
   if (botPersonaMatch) {
@@ -139,6 +140,12 @@ function extractPlaceholders(content) {
     processedContent = processedContent.replace(summaryMatch[0], '');
   }
 
+  const exampleDialogsMatch = processedContent.match(exampleDialogsRegex);
+  if (summaryMatch) {
+    placeholders.exampleDialogs = exampleDialogsMatch[1].trim();
+    processedContent = processedContent.replace(exampleDialogsMatch[0], '');
+  }
+
   // Everything else that remains (lorebooks) goes to {lorebooks}
   const lorebooks = processedContent.trim();
   if (lorebooks) {
@@ -159,6 +166,9 @@ function applyPlaceholders(content, placeholders) {
   const lines = processedContent.split('\n');
   for (const line of lines) {
     if (line.includes('{summary}') && (!placeholders.summary || placeholders.summary.trim() === '')) {
+      continue;
+    }
+    if (line.includes('{example_dialogs}') && (!placeholders.summary || placeholders.summary.trim() === '')) {
       continue;
     }
     if (line.includes('{lorebooks}') && (!placeholders.lorebooks || (placeholders.lorebooks.trim() === '' || placeholders.lorebooks.trim().length < 10))) {

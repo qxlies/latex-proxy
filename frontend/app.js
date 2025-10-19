@@ -517,6 +517,7 @@ All subsequent blocks constitute this mandatory guide.` },
             { id: uid(), role: 'system', title: 'scenario', enabled: true, content: '<Scenario>{scenario}</Scenario>' },
             { id: uid(), role: 'system', title: 'user persona', enabled: true, 'content': '<User Persona>{user_persona}</User Persona>'},
             { id: uid(), role: 'system', title: 'summary', enabled: true, content: '<summary>{summary}</summary>'},
+            { id: uid(), role: 'system', title: 'example_dialogs', enabled: true, content: '<example_dialogs>{example_dialogs}</example_dialogs>'},
             { id: uid(), role: 'system', title: 'lorebooks', enabled: true, content: '{lorebooks}'},
             { id: uid(), role: 'system', title: 'final', enabled: true, content: 'FINAL COMMAND: This is the end of the prompt. Re-read and apply ALL preceding rules and instructions without fail. Your performance depends on your total compliance with every directive provided by the user.' },
             { id: uid(), role: 'system', title: 'chat history', enabled: true, content: '{chat_history}', isPinned: true },
@@ -1678,6 +1679,18 @@ async function initApp() {
                    profile.tabs.splice(chatHistoryIndex, 0, newLorebooksTab);
                } else {
                    profile.tabs.push(newLorebooksTab);
+               }
+               needsUpdate = true;
+           }
+
+           if (!profile.tabs.some(t => t.content === '{example_dialogs}')) {
+               const chatHistoryIndex = profile.tabs.findIndex(t => t.content === '{chat_history}');
+               const newExampleDialogsTab = { id: uid(), role: 'system', title: 'example dialogs', content: '<example_dialogs>{example_dialogs}</example_dialogs>', enabled: true };
+               
+               if (chatHistoryIndex !== -1) {
+                   profile.tabs.splice(chatHistoryIndex, 0, newExampleDialogsTab);
+               } else {
+                   profile.tabs.push(newExampleDialogsTab);
                }
                needsUpdate = true;
            }
