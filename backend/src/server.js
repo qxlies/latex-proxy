@@ -141,8 +141,8 @@ function extractPlaceholders(content) {
   }
 
   const exampleDialogsMatch = processedContent.match(exampleDialogsRegex);
-  if (summaryMatch) {
-    placeholders.exampleDialogs = exampleDialogsMatch[1].trim();
+  if (exampleDialogsMatch) {
+    placeholders.example_dialogs = exampleDialogsMatch[1].trim();
     processedContent = processedContent.replace(exampleDialogsMatch[0], '');
   }
 
@@ -168,7 +168,7 @@ function applyPlaceholders(content, placeholders) {
     if (line.includes('{summary}') && (!placeholders.summary || placeholders.summary.trim() === '')) {
       continue;
     }
-    if (line.includes('{example_dialogs}') && (!placeholders.summary || placeholders.summary.trim() === '')) {
+    if (line.includes('{example_dialogs}') && (!placeholders.example_dialogs || placeholders.example_dialogs.trim() === '')) {
       continue;
     }
     if (line.includes('{lorebooks}') && (!placeholders.lorebooks || (placeholders.lorebooks.trim() === '' || placeholders.lorebooks.trim().length < 10))) {
