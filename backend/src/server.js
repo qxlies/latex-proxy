@@ -161,6 +161,9 @@ function applyPlaceholders(content, placeholders) {
     if (line.includes('{summary}') && (!placeholders.summary || placeholders.summary.trim() === '')) {
       continue;
     }
+    if (line.includes('{lorebooks}') && (!placeholders.lorebooks || (placeholders.lorebooks.trim() === '' || placeholders.lorebooks.trim().length < 10))) {
+      continue;
+    }
     finalLines.push(line);
   }
   return finalLines.join('\n');
