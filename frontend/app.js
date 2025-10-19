@@ -1664,44 +1664,44 @@ async function initApp() {
         state.user = user;
 
        for (const profile of profiles) {
-           let needsUpdate = false;
+            let needsUpdate = false;
            
-           if (!profile.tabs.some(t => t.content === '{chat_history}')) {
-               const newTab = { id: uid(), role: 'system', title: 'chat history', content: '{chat_history}', enabled: true, isPinned: true };
-               profile.tabs.push(newTab);
-               needsUpdate = true;
-           }
+            if (!profile.tabs.some(t => t.content === '{chat_history}')) {
+                const newTab = { id: uid(), role: 'system', title: 'chat history', content: '{chat_history}', enabled: true, isPinned: true };
+                profile.tabs.push(newTab);
+                needsUpdate = true;
+            }
            
-           if (!profile.tabs.some(t => t.content === '{lorebooks}')) {
-               const chatHistoryIndex = profile.tabs.findIndex(t => t.content === '{chat_history}');
-               const newLorebooksTab = { id: uid(), role: 'system', title: 'lorebooks', content: '{lorebooks}', enabled: true };
-               
-               if (chatHistoryIndex !== -1) {
-                   profile.tabs.splice(chatHistoryIndex, 0, newLorebooksTab);
-               } else {
-                   profile.tabs.push(newLorebooksTab);
-               }
-               needsUpdate = true;
-           }
+            if (!profile.tabs.some(t => t.content.includes('{lorebooks}'))) {
+                const chatHistoryIndex = profile.tabs.findIndex(t => t.content.includes('{chat_history}'));
+                const newLorebooksTab = { id: uid(), role: 'system', title: 'lorebooks', content: '{lorebooks}', enabled: true };
+                
+                if (chatHistoryIndex !== -1) {
+                    profile.tabs.splice(chatHistoryIndex, 0, newLorebooksTab);
+                } else {
+                    profile.tabs.push(newLorebooksTab);
+                }
+                needsUpdate = true;
+            }
 
-           if (!profile.tabs.some(t => t.content === '{example_dialogs}')) {
-               const chatHistoryIndex = profile.tabs.findIndex(t => t.content === '{chat_history}');
-               const newExampleDialogsTab = { id: uid(), role: 'system', title: 'example dialogs', content: '<example_dialogs>{example_dialogs}</example_dialogs>', enabled: true };
-               
-               if (chatHistoryIndex !== -1) {
-                   profile.tabs.splice(chatHistoryIndex, 0, newExampleDialogsTab);
-               } else {
-                   profile.tabs.push(newExampleDialogsTab);
-               }
-               needsUpdate = true;
-           }
-           
-           if (needsUpdate) {
-               await fetchAPI(`/api/profiles/${profile._id}`, {
-                   method: 'PUT',
-                   body: JSON.stringify({ tabs: profile.tabs }),
-               });
-           }
+            if (!profile.tabs.some(t => t.content.includes('{example_dialogs}'))) {
+                const chatHistoryIndex = profile.tabs.findIndex(t => t.content.includes('{chat_history}'));
+                const newExampleDialogsTab = { id: uid(), role: 'system', title: 'example dialogs', content: '<example_dialogs>{example_dialogs}</example_dialogs>', enabled: true };
+                
+                if (chatHistoryIndex !== -1) {
+                    profile.tabs.splice(chatHistoryIndex, 0, newExampleDialogsTab);
+                } else {
+                    profile.tabs.push(newExampleDialogsTab);
+                }
+                needsUpdate = true;
+            }
+                    
+            if (needsUpdate) {
+                await fetchAPI(`/api/profiles/${profile._id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ tabs: profile.tabs }),
+                });
+            }
        }
 
         if (!user.profileOrder || user.profileOrder.length === 0) {
