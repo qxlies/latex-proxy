@@ -28,6 +28,15 @@ const LogSchema = new mongoose.Schema({
     completion_tokens: { type: Number },
     total_tokens: { type: Number },
   },
+  placeholders: {
+    bot_persona: { type: String },
+    scenario: { type: String },
+    user_persona: { type: String },
+    summary: { type: String },
+    lorebooks: { type: String },
+    user: { type: String },
+    char: { type: String },
+  },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Log', LogSchema);

@@ -778,6 +778,10 @@ iconify-icon {
    background: rgba(255, 215, 0, .25);
    border: 1px solid rgba(255, 215, 0, .5);
 }
+.tab .role.lorebooks {
+   background: rgba(255, 105, 180, .25);
+   border: 1px solid rgba(255, 105, 180, .5);
+}
 .tab .title { font-weight: 600; font-size: 12px }
 .tab .meta { margin-left: 2px; font-size: 11px; color: var(--muted) }
 .tab .icons { display: inline-flex; gap: 6px; margin-left: auto }
@@ -1185,9 +1189,7 @@ input:checked + .slider:before {
 }
 
 #logsContainer {
-  min-height: 300px;
-  max-height: 600px;
-  overflow-y: auto;
+  min-height: 200px;
 }
 
 #logsContainer::-webkit-scrollbar {
@@ -1249,23 +1251,20 @@ input:checked + .slider:before {
 }
 
 .log-details-toggle {
-  background: none;
-  border: none;
-  color: var(--accent-1);
+  background: linear-gradient(180deg, rgba(122,162,255,.15), rgba(122,162,255,.08));
+  border: 1px solid rgba(122,162,255,.35);
+  color: var(--fg);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
+  transition: all 0.2s;
 }
 
-.log-details {
-  padding: 10px;
-  background: rgba(0,0,0,0.1);
-  margin-top: -1px;
-  border-bottom: 1px solid var(--border);
-  display: none;
-}
-.log-details pre {
-  white-space: pre-wrap;
-  word-break: break-all;
-  font-size: 12px;
+.log-details-toggle:hover {
+  background: linear-gradient(180deg, rgba(122,162,255,.25), rgba(122,162,255,.15));
+  border-color: rgba(122,162,255,.5);
 }
 
 #logsPagination {
@@ -1637,4 +1636,290 @@ input:checked + .slider:before {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* Log Modal */
+.log-modal .modal-content {
+  max-width: 900px;
+  max-height: 90vh;
+}
+
+.log-modal .modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.log-modal-title {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+.log-modal-title h2 {
+  margin: 0;
+}
+
+.log-modal-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.log-modal-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.log-modal-right .log-tokens {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.log-modal .modal-body {
+  padding: 0;
+  max-height: calc(90vh - 120px);
+  overflow-y: auto;
+}
+
+/* Log Tabs System */
+.log-tabs {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.log-tab-buttons {
+  display: flex;
+  gap: 8px;
+  padding: 20px 28px 0;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--bg2), var(--bg3));
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.log-tab-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.2s;
+  border-radius: 8px 8px 0 0;
+}
+
+.log-tab-btn:hover {
+  color: var(--fg);
+  background: rgba(255,255,255,.04);
+}
+
+.log-tab-btn.active {
+  color: #7aa2ff;
+  background: transparent;
+}
+
+.log-tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #7aa2ff, #9d7aff);
+  border-radius: 3px 3px 0 0;
+}
+
+.log-tab-contents {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.log-tab-content {
+  display: none;
+  padding: 24px 28px;
+}
+
+.log-tab-content.active {
+  display: block;
+}
+
+.log-tab-content pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 13px;
+  line-height: 1.6;
+  background: rgba(0,0,0,0.3);
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.log-tab-content code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+/* Placeholders Display */
+.placeholders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.placeholder-item {
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+.placeholder-item:hover {
+  background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.05));
+  border-color: rgba(122,162,255,.3);
+}
+
+.placeholder-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.placeholder-item:not(.collapsed) .placeholder-header {
+  padding-bottom: 10px;
+}
+
+.placeholder-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #7aa2ff;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.placeholder-toggle {
+  background: none;
+  border: none;
+  color: var(--muted);
+  padding: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.placeholder-toggle:hover {
+  color: var(--fg);
+}
+
+.placeholder-toggle iconify-icon {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.2s;
+}
+
+.placeholder-preview {
+  padding: 0 16px 14px 16px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted);
+  white-space: pre-wrap;
+  word-break: break-word;
+  cursor: pointer;
+}
+
+.placeholder-item.collapsed .placeholder-preview {
+  display: block;
+}
+
+.placeholder-item:not(.collapsed) .placeholder-preview {
+  display: none;
+}
+
+.placeholder-content {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--fg);
+  white-space: pre-wrap;
+  word-break: break-word;
+  padding: 12px 16px 16px 16px;
+  background: rgba(0,0,0,0.15);
+  border-top: 1px solid var(--border);
+}
+
+.placeholder-item.collapsed .placeholder-content {
+  display: none;
+}
+
+.placeholder-item:not(.collapsed) .placeholder-content {
+  display: block;
+}
+
+.log-tab-contents::-webkit-scrollbar {
+  width: 10px;
+}
+
+.log-tab-contents::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.log-tab-contents::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(122,162,255,.3), rgba(122,162,255,.15));
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.log-tab-contents::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(122,162,255,.45), rgba(122,162,255,.25));
+  background-clip: padding-box;
+}
+
+@media (max-width: 900px) {
+  .log-modal .modal-content {
+    max-width: 95%;
+  }
+  
+  .log-modal .modal-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .log-modal-right {
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+  
+  .log-tab-buttons {
+    padding: 16px 20px 0;
+  }
+  
+  .log-tab-content {
+    padding: 20px;
+  }
+  
+  .log-modal-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
 }

@@ -171,15 +171,13 @@ async function handleFileImport(event) {
 
             importedProfile.name = `${importedProfile.name} (imported)`;
 
-            // Create profile with tabs and additional settings
             const newProfileData = {
                 name: importedProfile.name,
                 tabs: importedProfile.tabs,
                 providerType: importedProfile.providerType || 'custom',
                 extraParams: importedProfile.extraParams || '{}',
             };
-            
-            // Import provider settings (without API keys)
+
             if (importedProfile.providers) {
                 newProfileData.providers = {
                     openrouter: {
@@ -515,10 +513,11 @@ Your core principles of operation are as follows:
 3.  Role Integrity: Your entire purpose is to embody the persona and fulfill the functions outlined in the blocks that follow. Do not break character or contradict the established rules.
 
 All subsequent blocks constitute this mandatory guide.` },
-            { id: uid(), role: 'user', title: 'bot persona', enabled: true, content: '<{{char}}\'s Persona>{bot_persona}<{{char}}\'s Persona>'},
-            { id: uid(), role: 'user', title: 'scenario', enabled: true, content: '<Scenario>{scenario}</Scenario>' },
-            { id: uid(), role: 'user', title: 'user persona', enabled: true, 'content': '<User Persona>{user_persona}</User Persona>'},
-            { id: uid(), role: 'user', title: 'summary', enabled: true, content: '<summary>{summary}</summary>'},
+            { id: uid(), role: 'system', title: 'bot persona', enabled: true, content: '<{{char}}\'s Persona>{bot_persona}<{{char}}\'s Persona>'},
+            { id: uid(), role: 'system', title: 'scenario', enabled: true, content: '<Scenario>{scenario}</Scenario>' },
+            { id: uid(), role: 'system', title: 'user persona', enabled: true, 'content': '<User Persona>{user_persona}</User Persona>'},
+            { id: uid(), role: 'system', title: 'summary', enabled: true, content: '<summary>{summary}</summary>'},
+            { id: uid(), role: 'system', title: 'lorebooks', enabled: true, content: '{lorebooks}'},
             { id: uid(), role: 'system', title: 'final', enabled: true, content: 'FINAL COMMAND: This is the end of the prompt. Re-read and apply ALL preceding rules and instructions without fail. Your performance depends on your total compliance with every directive provided by the user.' },
             { id: uid(), role: 'system', title: 'chat history', enabled: true, content: '{chat_history}', isPinned: true },
         ]
@@ -626,8 +625,21 @@ function createTabElement(t, p) {
   el.dataset.id = t.id
   const count = tokenCount(t.content || '')
   const isChatHistory = t.content === '{chat_history}';
+  const isLorebooks = t.content === '{lorebooks}';
+  
+  let roleClass = t.role;
+  let roleLabel = t.role === 'system' ? 'S' : 'U';
+  
+  if (isChatHistory) {
+    roleClass = 'chat-history';
+    roleLabel = 'C';
+  } else if (isLorebooks) {
+    roleClass = 'lorebooks';
+    roleLabel = 'L';
+  }
+  
  el.innerHTML = `
-   <span class="role ${isChatHistory ? 'chat-history' : t.role}">${isChatHistory ? 'C' : (t.role === 'system' ? 'S' : 'U')}</span>
+   <span class="role ${roleClass}">${roleLabel}</span>
    <span class="title">${t.title || '(no name)'}</span>
    <span class="meta">${count}</span>
    <span class="icons">
@@ -770,8 +782,7 @@ async function switchProvider(providerType) {
     if (!p.providers) {
         p.providers = {};
     }
-    
-    // Ensure all provider structures exist
+
     if (!p.providers.openrouter) p.providers.openrouter = { apiKey: '', model: '' };
     if (!p.providers.aistudio) p.providers.aistudio = { apiKey: '', model: 'gemini-2.5-pro' };
     if (!p.providers.free) p.providers.free = { model: 'gemini-2.5-pro' };
@@ -922,14 +933,12 @@ function fillProfileSettings() {
         p.providerType = 'custom';
     }
 
-    // IMPORTANT: Set extraParams BEFORE calling switchProvider to prevent overwriting
     if (window.extraParamsEditor) {
        isSettingExtraParams = true;
        window.extraParamsEditor.setValue(p.extraParams || '{}');
        setTimeout(() => { isSettingExtraParams = false; }, 100);
     }
 
-    // This will call saveProviderSettings, but now extraParams is already set
     switchProvider(p.providerType);
 }
 
@@ -1371,35 +1380,178 @@ function renderLogs(logs) {
             <span class="log-status ${statusClass}">${log.statusCode}</span>
             <span class="log-time">${new Date(log.createdAt).toLocaleString()}</span>
             <span class="log-tokens">Tokens: ${totalTokens}</span>
-            <button class="log-details-toggle">Details</button>
+            <button class="log-details-toggle">View Details</button>
         `;
 
-        const detailsRow = document.createElement('div');
-        detailsRow.className = 'log-details';
-        
-        const pre = document.createElement('pre');
-        const code = document.createElement('code');
-        code.className = 'json';
-        code.textContent = JSON.stringify(log.responseBody, null, 2);
-        pre.appendChild(code);
-        detailsRow.appendChild(pre);
-        
         logItem.querySelector('.log-details-toggle').addEventListener('click', () => {
-            const details = logItem.nextElementSibling;
-            if (details && details.classList.contains('log-details')) {
-                const codeBlock = details.querySelector('code');
-                if (details.style.display === 'block') {
-                    details.style.display = 'none';
-                } else {
-                    details.style.display = 'block';
-                    hljs.highlightElement(codeBlock);
-                }
-            }
+            openLogModal(log);
         });
 
         logsContainer.appendChild(logItem);
-        logsContainer.appendChild(detailsRow);
     });
+}
+
+function openLogModal(log) {
+    const modal = document.createElement('div');
+    modal.className = 'modal log-modal';
+    modal.id = 'logModal';
+    
+    const statusClass = log.statusCode >= 400 ? 'status-error' : 'status-200';
+    const totalTokens = log.usage ? log.usage.total_tokens : 'N/A';
+    
+    modal.innerHTML = `
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="log-modal-title">
+                    <h2>Log Details</h2>
+                    <div class="log-modal-meta">
+                        <span class="log-status ${statusClass}">${log.statusCode}</span>
+                        <span class="log-time">${new Date(log.createdAt).toLocaleString()}</span>
+                    </div>
+                </div>
+                <div class="log-modal-right">
+                    <span class="log-tokens">Tokens: ${totalTokens}</span>
+                    <button class="modal-close" id="closeLogModal">
+                        <iconify-icon icon="lucide:x"></iconify-icon>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="log-tabs">
+                    <div class="log-tab-buttons">
+                        <button class="log-tab-btn active" data-tab="response">Response</button>
+                        ${log.placeholders && Object.keys(log.placeholders).some(key => log.placeholders[key]) ?
+                            '<button class="log-tab-btn" data-tab="placeholders">Request Data</button>' : ''}
+                    </div>
+                    <div class="log-tab-contents">
+                        <div class="log-tab-content active" data-tab="response">
+                            <pre><code class="json">${JSON.stringify(log.responseBody, null, 2)}</code></pre>
+                        </div>
+                        ${log.placeholders && Object.keys(log.placeholders).some(key => log.placeholders[key]) ?
+                            createPlaceholdersTab(log.placeholders) : ''}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    document.body.style.overflow = 'hidden';
+    
+    // Highlight code
+    const codeBlock = modal.querySelector('code.json');
+    if (codeBlock) {
+        hljs.highlightElement(codeBlock);
+    }
+    
+    // Tab switching
+    const tabButtons = modal.querySelectorAll('.log-tab-btn');
+    const tabContents = modal.querySelectorAll('.log-tab-content');
+    
+    tabButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const targetTab = btn.dataset.tab;
+            
+            tabButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            tabContents.forEach(content => {
+                if (content.dataset.tab === targetTab) {
+                    content.classList.add('active');
+                } else {
+                    content.classList.remove('active');
+                }
+            });
+        });
+    });
+    
+    // Placeholder toggle handlers
+    const placeholderItems = modal.querySelectorAll('.placeholder-item');
+    placeholderItems.forEach(item => {
+        const header = item.querySelector('.placeholder-header');
+        const preview = item.querySelector('.placeholder-preview');
+        const toggle = item.querySelector('.placeholder-toggle');
+        const icon = toggle.querySelector('iconify-icon');
+        
+        // Header: toggle
+        header.addEventListener('click', () => {
+            const isCollapsed = item.classList.contains('collapsed');
+            if (isCollapsed) {
+                item.classList.remove('collapsed');
+                icon.setAttribute('icon', 'lucide:chevron-up');
+            } else {
+                item.classList.add('collapsed');
+                icon.setAttribute('icon', 'lucide:chevron-down');
+            }
+        });
+        
+        // Preview
+        if (preview) {
+            preview.addEventListener('click', () => {
+                if (item.classList.contains('collapsed')) {
+                    item.classList.remove('collapsed');
+                    icon.setAttribute('icon', 'lucide:chevron-up');
+                }
+            });
+        }
+    });
+    
+    // Close handlers
+    const closeBtn = modal.querySelector('#closeLogModal');
+    const overlay = modal.querySelector('.modal-overlay');
+    
+    const closeModal = () => {
+        modal.remove();
+        document.body.style.overflow = '';
+    };
+    
+    closeBtn.addEventListener('click', closeModal);
+    overlay.addEventListener('click', closeModal);
+}
+
+function createPlaceholdersTab(placeholders) {
+    const placeholderLabels = {
+        user: 'User Name',
+        char: 'Character Name',
+        bot_persona: 'Bot Persona',
+        scenario: 'Scenario',
+        user_persona: 'User Persona',
+        summary: 'Summary',
+        lorebooks: 'Lorebooks'
+    };
+    
+    let items = '';
+    Object.entries(placeholders).forEach(([key, value]) => {
+        if (value && value.trim()) {
+            const label = placeholderLabels[key] || key;
+            const escapedValue = value.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const previewText = escapedValue.length > 100
+                ? escapedValue.substring(0, 100) + '...'
+                : escapedValue;
+            
+            items += `
+                <div class="placeholder-item collapsed">
+                    <div class="placeholder-header">
+                        <div class="placeholder-label">${label}</div>
+                        <button class="placeholder-toggle">
+                            <iconify-icon icon="lucide:chevron-down"></iconify-icon>
+                        </button>
+                    </div>
+                    <div class="placeholder-preview">${previewText}</div>
+                    <div class="placeholder-content">${escapedValue}</div>
+                </div>
+            `;
+        }
+    });
+    
+    return `
+        <div class="log-tab-content" data-tab="placeholders">
+            <div class="placeholders-list">
+                ${items}
+            </div>
+        </div>
+    `;
 }
 
 function renderPagination(totalPages, currentPage) {
@@ -1510,9 +1662,27 @@ async function initApp() {
         state.user = user;
 
        for (const profile of profiles) {
+           let needsUpdate = false;
+           
            if (!profile.tabs.some(t => t.content === '{chat_history}')) {
                const newTab = { id: uid(), role: 'system', title: 'chat history', content: '{chat_history}', enabled: true, isPinned: true };
                profile.tabs.push(newTab);
+               needsUpdate = true;
+           }
+           
+           if (!profile.tabs.some(t => t.content === '{lorebooks}')) {
+               const chatHistoryIndex = profile.tabs.findIndex(t => t.content === '{chat_history}');
+               const newLorebooksTab = { id: uid(), role: 'system', title: 'lorebooks', content: '{lorebooks}', enabled: true };
+               
+               if (chatHistoryIndex !== -1) {
+                   profile.tabs.splice(chatHistoryIndex, 0, newLorebooksTab);
+               } else {
+                   profile.tabs.push(newLorebooksTab);
+               }
+               needsUpdate = true;
+           }
+           
+           if (needsUpdate) {
                await fetchAPI(`/api/profiles/${profile._id}`, {
                    method: 'PUT',
                    body: JSON.stringify({ tabs: profile.tabs }),

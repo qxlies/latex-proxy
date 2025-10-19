@@ -96,30 +96,54 @@ function extractPlaceholders(content) {
   const placeholders = {};
   if (!content) return placeholders;
 
-  const personaRegex = /<([\s\S]*?'s Persona)>([\s\S]*?)<\/\1>/;
-  const scenarioRegex = /<Scenario>([\s\S]*?)<\/Scenario>/;
-  const userPersonaRegex = /<UserPersona>([\s\S]*?)<\/UserPersona>/;
-  const summaryRegex = /<summary>([\s\S]*?)<\/summary>/;
   const userName = /<\!user>([\s\S]*?)<\/user>/;
   const characterName = /<character>([\s\S]*?)<\/character>/;
-
-  const botPersonaMatch = content.match(personaRegex);
-  if (botPersonaMatch) placeholders.bot_persona = botPersonaMatch[2].trim();
-
-  const scenarioMatch = content.match(scenarioRegex);
-  if (scenarioMatch) placeholders.scenario = scenarioMatch[1].trim();
-
-  const userPersonaMatch = content.match(userPersonaRegex);
-  if (userPersonaMatch) placeholders.user_persona = userPersonaMatch[1].trim();
-
-  const summaryRegexMatch = content.match(summaryRegex);
-  if (summaryRegexMatch) placeholders.summary = summaryRegexMatch[1].trim();
 
   const userNameMatch = content.match(userName);
   if (userNameMatch) placeholders.user = userNameMatch[1].trim();
 
   const characterNameMatch = content.match(characterName);
   if (characterNameMatch) placeholders.char = characterNameMatch[1].trim();
+
+  let processedContent = content;
+  processedContent = processedContent.replace(/<\!user>[\s\S]*?<\/user>/g, '');
+  processedContent = processedContent.replace(/<character>[\s\S]*?<\/character>/g, '');
+  processedContent = processedContent.replace(/^\s*\n/gm, ''); // Remove empty lines
+
+  const personaRegex = /<([\s\S]*?'s Persona)>([\s\S]*?)<\/\1>/;
+  const scenarioRegex = /<Scenario>([\s\S]*?)<\/Scenario>/;
+  const userPersonaRegex = /<UserPersona>([\s\S]*?)<\/UserPersona>/;
+  const summaryRegex = /<summary>([\s\S]*?)<\/summary>/;
+
+  const botPersonaMatch = processedContent.match(personaRegex);
+  if (botPersonaMatch) {
+    placeholders.bot_persona = botPersonaMatch[2].trim();
+    processedContent = processedContent.replace(botPersonaMatch[0], '');
+  }
+
+  const scenarioMatch = processedContent.match(scenarioRegex);
+  if (scenarioMatch) {
+    placeholders.scenario = scenarioMatch[1].trim();
+    processedContent = processedContent.replace(scenarioMatch[0], '');
+  }
+
+  const userPersonaMatch = processedContent.match(userPersonaRegex);
+  if (userPersonaMatch) {
+    placeholders.user_persona = userPersonaMatch[1].trim();
+    processedContent = processedContent.replace(userPersonaMatch[0], '');
+  }
+
+  const summaryMatch = processedContent.match(summaryRegex);
+  if (summaryMatch) {
+    placeholders.summary = summaryMatch[1].trim();
+    processedContent = processedContent.replace(summaryMatch[0], '');
+  }
+
+  // Everything else that remains (lorebooks) goes to {lorebooks}
+  const lorebooks = processedContent.trim();
+  if (lorebooks) {
+    placeholders.lorebooks = lorebooks;
+  }
 
   return placeholders;
 }
@@ -302,6 +326,7 @@ app.post('/v1/chat/completions', authMiddleware, async (req, res) => {
                    statusText: r.statusText,
                    responseBody: responseData,
                    usage: responseData.usage,
+                   placeholders: placeholders,
                });
             }
         } catch (e) { }
@@ -353,6 +378,7 @@ app.post('/v1/chat/completions', authMiddleware, async (req, res) => {
                    usage: usage
                },
                usage: usage,
+               placeholders: placeholders,
            });
        }
     } catch(e) {
