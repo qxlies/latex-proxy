@@ -12,6 +12,7 @@ import { fillProfileSettings, initCodeMirror } from './providers.js';
 import { fetchLogs } from './logs.js';
 import { updateEndpointUrl, updateUserApiKeyDisplay } from './ui.js';
 import { showLoading, hideLoading } from './loading.js';
+import { initFAQ, updateFAQApiKey } from './faq.js';
 
 export async function initApp() {
     initCodeMirror();
@@ -92,6 +93,8 @@ export async function initApp() {
         loadMergeRolesState();
         fillProfileSettings();
         fetchLogs();
+        initFAQ();
+        updateFAQApiKey();
         
         const loggingToggle = document.getElementById('loggingToggle');
         if (loggingToggle) {

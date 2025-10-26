@@ -5,6 +5,7 @@
 
 import { buildEndpointUrl, copyToClipboard, maskApiKey } from './utils.js';
 import { state } from './state.js';
+import { updateFAQApiKey } from './faq.js';
 
 // DOM Elements
 const endpointUrlEl = document.getElementById('endpointUrl');
@@ -35,6 +36,7 @@ export async function copyUserApiKey() {
 export function updateUserApiKeyDisplay() {
     if (state.user && state.user.apiKey) {
         userApiKeyEl.textContent = maskApiKey(state.user.apiKey);
+        updateFAQApiKey();
     }
 }
 

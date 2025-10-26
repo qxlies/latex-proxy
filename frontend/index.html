@@ -331,6 +331,140 @@
         </div>
     </section>
 
+    <!-- FAQ Section -->
+    <section class="panel faq-section">
+      <div class="section-header">
+        <iconify-icon icon="lucide:help-circle"></iconify-icon>
+        <h3>FAQ - Frequently Asked Questions</h3>
+      </div>
+      
+      <details class="faq-item" open>
+        <summary>
+          <iconify-icon icon="lucide:chevron-right" class="chevron"></iconify-icon>
+          <span>How to set up JanitorAI to work with Latex Proxy?</span>
+        </summary>
+        <div class="faq-content">
+          <ol class="faq-steps">
+            <li>
+              <strong>Copy your API Key</strong> from the block above (click the copy button next to "Your API Key"):<br>
+              <code class="inline-code copyable-faq-code" id="faqApiKey" data-copy-text="">Click to copy your API key</code>
+            </li>
+            <li>
+              <strong>Go to JanitorAI</strong> and open API Settings in the chat
+            </li>
+            <li>
+              <strong>Select "Proxy"</strong> as the provider and create a new profile
+            </li>
+            <li>
+              <strong>Paste the Endpoint URL:</strong><br>
+              <code class="inline-code copyable-faq-code" data-copy-text="https://latex.ai.bobots.me/v1/chat/completions">https://latex.ai.bobots.me/v1/chat/completions</code>
+            </li>
+            <li>
+              <strong>Paste your API Key</strong> from Latex Proxy
+            </li>
+            <li>
+              <strong>In Custom Prompt paste:</strong><br>
+              <code class="inline-code copyable-faq-code" data-copy-text="<!user>{{user}}</user><character>{{char}}</character>">&lt;!user&gt;{{user}}&lt;/user&gt;&lt;character&gt;{{char}}&lt;/character&gt;</code>
+            </li>
+            <li>
+              <strong>Import a profile:</strong>
+              <ul>
+                <li>Return to Latex Proxy</li>
+                <li>Click "Manage Profiles"</li>
+                <li>Select the desired profile or create a new one</li>
+                <li>Click "Export" to download the profile</li>
+                <li>Click "Import" to upload a ready-made profile</li>
+                <li>Click "Set for API" to activate the profile for API use</li>
+              </ul>
+            </li>
+            <li>
+              <strong>Done!</strong> You can now start chatting with the bot on JanitorAI
+            </li>
+          </ol>
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>
+          <iconify-icon icon="lucide:chevron-right" class="chevron"></iconify-icon>
+          <span>What are profiles and why are they needed?</span>
+        </summary>
+        <div class="faq-content">
+          <p>Profiles allow you to create different sets of system prompts for different tasks or characters. Each profile contains a set of tabs with instructions that will be sent to the model.</p>
+          <p>You can create an unlimited number of profiles, switch between them, and share them with friends through Import/Export functions.</p>
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>
+          <iconify-icon icon="lucide:chevron-right" class="chevron"></iconify-icon>
+          <span>How do placeholders work?</span>
+        </summary>
+        <div class="faq-content">
+          <p>Placeholders are special markers in your tabs that are automatically replaced with real data from the request:</p>
+          <ul>
+            <li><code class="inline-code">{bot_persona}</code> - bot character description</li>
+            <li><code class="inline-code">{scenario}</code> - dialogue scenario</li>
+            <li><code class="inline-code">{user_persona}</code> - user description</li>
+            <li><code class="inline-code">{summary}</code> - summary</li>
+            <li><code class="inline-code">{example_dialogs}</code> - example dialogues</li>
+            <li><code class="inline-code">{lorebooks}</code> - lorebooks</li>
+            <li><code class="inline-code">{{user}}</code> - user name</li>
+            <li><code class="inline-code">{{char}}</code> - character name</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>
+          <iconify-icon icon="lucide:chevron-right" class="chevron"></iconify-icon>
+          <span>What is GoRouter and how is it different from other providers?</span>
+        </summary>
+        <div class="faq-content">
+          <p><strong>GoRouter</strong> is an API provider from the Latex developer with advantages:</p>
+          <ul>
+            <li>🎉 <strong>Free plan:</strong> 500,000 tokens per day</li>
+            <li>🚀 <strong>Access to top models:</strong> Claude, OpenAI, Gemini and others via OpenRouter</li>
+            <li>🧠 <strong>Support for all features:</strong> enabling reasoning, changing provider, etc.</li>
+            <li>💰 <strong>Affordable paid plans:</strong> for those who need more</li>
+          </ul>
+          <p>Join the Discord server to get an API key!</p>
+        </div>
+      </details>
+    </section>
+
+    <!-- Changelog Section -->
+    <section class="panel changelog-section">
+      <div class="section-header">
+        <iconify-icon icon="lucide:git-commit"></iconify-icon>
+        <h3>Changelog</h3>
+      </div>
+      
+      <div class="changelog-content">
+        <div class="changelog-entry">
+          <div class="changelog-version">
+            <span class="version-badge">v1.0.0</span>
+            <span class="version-date">2025-01-26</span>
+          </div>
+          <div class="changelog-changes">
+            <h4>🎉 Initial Release</h4>
+            <ul>
+              <li>Modular prompt system with tabs</li>
+              <li>Support for multiple providers (GoRouter, OpenRouter, AI Studio, Custom)</li>
+              <li>Profile system with Import/Export</li>
+              <li>Request logging and analysis of all blocks</li>
+              <li>Placeholders for dynamic data substitution</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Placeholder for future updates -->
+        <div class="changelog-placeholder">
+          <p>Future updates will be displayed here...</p>
+        </div>
+      </div>
+    </section>
+
     <section class="panel">
       <div class="merge-roles-section">
         <label class="custom-checkbox merge-roles-toggle">
