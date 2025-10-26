@@ -156,10 +156,14 @@
 
       <!-- GoRouter Settings -->
       <div id="gorouterSettings" class="provider-settings">
-        <div class="provider-header">
-          <iconify-icon icon="lucide:route"></iconify-icon>
-          <h3>GoRouter Configuration</h3>
-        </div>
+        <details class="provider-details" open>
+          <summary class="provider-header">
+            <div class="provider-header-content">
+              <iconify-icon icon="lucide:route"></iconify-icon>
+              <h3>GoRouter Configuration</h3>
+            </div>
+          </summary>
+          <div class="provider-details-content">
         <div class="gorouter-notice">
           <p><strong>🎉 Free Plan Available!</strong><br>
           API от разработчика Latex с бесплатным Free Plan: 500k токенов в день и доступом к моделям Claude, OpenAI и другим через OpenRouter.</p>
@@ -215,15 +219,19 @@
             </select>
             <small class="provider-hint">Google provider has no content moderation</small>
           </div>
-        </div>
+        </details>
       </div>
 
       <!-- OpenRouter Settings -->
       <div id="openrouterSettings" class="provider-settings">
-        <div class="provider-header">
-          <iconify-icon icon="lucide:globe"></iconify-icon>
-          <h3>OpenRouter Configuration</h3>
-        </div>
+        <details class="provider-details" open>
+          <summary class="provider-header">
+            <div class="provider-header-content">
+              <iconify-icon icon="lucide:globe"></iconify-icon>
+              <h3>OpenRouter Configuration</h3>
+            </div>
+          </summary>
+          <div class="provider-details-content">
         <div class="field">
           <span>API Key</span>
           <input id="openrouterApiKey" type="password" placeholder="sk-or-v1-...">
@@ -240,15 +248,20 @@
             >
             <div id="openrouterModelDropdown" class="model-dropdown"></div>
           </div>
-        </div>
+          </div>
+        </details>
       </div>
 
       <!-- AI Studio Settings -->
       <div id="aistudioSettings" class="provider-settings">
-        <div class="provider-header">
-          <iconify-icon icon="lucide:git-pull-request-arrow"></iconify-icon>
-          <h3>AI Studio Configuration</h3>
-        </div>
+        <details class="provider-details" open>
+          <summary class="provider-header">
+            <div class="provider-header-content">
+              <iconify-icon icon="lucide:git-pull-request-arrow"></iconify-icon>
+              <h3>AI Studio Configuration</h3>
+            </div>
+          </summary>
+          <div class="provider-details-content">
         <div class="field">
           <span>API Key</span>
           <input id="aistudioApiKey" type="password" placeholder="...">
@@ -256,7 +269,8 @@
         <div class="field">
           <span>Model</span>
           <input id="aistudioModel" type="text" placeholder="gemini-2.5-pro">
-        </div>
+          </div>
+        </details>
       </div>
 
       <!-- Free Provider Settings
@@ -279,10 +293,14 @@
 
       <!-- Custom Proxy Settings -->
       <div id="customSettings" class="provider-settings">
-        <div class="provider-header">
-          <iconify-icon icon="lucide:settings-2"></iconify-icon>
-          <h3>Custom Proxy Configuration</h3>
-        </div>
+        <details class="provider-details" open>
+          <summary class="provider-header">
+            <div class="provider-header-content">
+              <iconify-icon icon="lucide:settings-2"></iconify-icon>
+              <h3>Custom Proxy Configuration</h3>
+            </div>
+          </summary>
+          <div class="provider-details-content">
         <div class="field">
           <span>Endpoint URL</span>
           <input id="customEndpoint" type="text" placeholder="https://api.example.com/v1/chat/completions">
@@ -295,7 +313,8 @@
         <div class="field">
           <span>Model</span>
           <input id="customModel" type="text" placeholder="gpt-4, claude-3, etc.">
-        </div>
+          </div>
+        </details>
       </div>
 
      <details class="spoiler" style="margin-top: 14px;">
@@ -331,12 +350,22 @@
         </div>
     </section>
 
-    <!-- FAQ Section -->
-    <section class="panel faq-section">
+    <!-- FAQ & Changelog Section -->
+    <section class="panel faq-changelog-section">
       <div class="section-header">
-        <iconify-icon icon="lucide:help-circle"></iconify-icon>
-        <h3>FAQ - Frequently Asked Questions</h3>
+        <iconify-icon icon="lucide:book-open"></iconify-icon>
+        <h3>FAQ & Changelog</h3>
       </div>
+      
+      <!-- FAQ -->
+      <details class="section-collapsible" open>
+        <summary class="section-collapsible-header">
+          <div class="section-collapsible-title">
+            <iconify-icon icon="lucide:help-circle"></iconify-icon>
+            <span>Frequently Asked Questions</span>
+          </div>
+        </summary>
+        <div class="section-collapsible-content">
       
       <details class="faq-item" open>
         <summary>
@@ -431,15 +460,18 @@
           <p>Join the Discord server to get an API key!</p>
         </div>
       </details>
-    </section>
-
-    <!-- Changelog Section -->
-    <section class="panel changelog-section">
-      <div class="section-header">
-        <iconify-icon icon="lucide:git-commit"></iconify-icon>
-        <h3>Changelog</h3>
-      </div>
+        </div>
+      </details>
       
+      <!-- Changelog -->
+      <details class="section-collapsible">
+        <summary class="section-collapsible-header">
+          <div class="section-collapsible-title">
+            <iconify-icon icon="lucide:git-commit"></iconify-icon>
+            <span>Changelog</span>
+          </div>
+        </summary>
+        <div class="section-collapsible-content">
       <div class="changelog-content">
         <div class="changelog-entry">
           <div class="changelog-version">
@@ -463,6 +495,8 @@
           <p>Future updates will be displayed here...</p>
         </div>
       </div>
+        </div>
+      </details>
     </section>
 
     <section class="panel">

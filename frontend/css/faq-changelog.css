@@ -1,5 +1,84 @@
 /* FAQ and Changelog Styles */
 
+/* Section Collapsible (for FAQ & Changelog combined) */
+.section-collapsible {
+  border: none;
+  margin: 20px 0;
+}
+
+.section-collapsible:first-of-type {
+  margin-top: 0;
+}
+
+.section-collapsible-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+.section-collapsible-header::-webkit-details-marker {
+  display: none;
+}
+
+.section-collapsible-header:hover {
+  background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
+  border-color: rgba(122,162,255,.3);
+}
+
+.section-collapsible-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--fg);
+}
+
+.section-collapsible-title iconify-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--accent-1);
+}
+
+.section-collapsible-header::after {
+  content: '';
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid var(--muted);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.section-collapsible[open] .section-collapsible-header::after {
+  transform: rotate(180deg);
+}
+
+.section-collapsible-content {
+  padding-top: 16px;
+  animation: slideDownSection 0.2s ease;
+}
+
+@keyframes slideDownSection {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Section Header */
 .section-header {
   display: flex;

@@ -18,7 +18,7 @@ router.put('/:id', async (req, res) => {
   const {
     user: { userId },
     params: { id: profileId },
-    body: { name, proxyEndpoint, proxyApiKey, model, activeTabId, tabs, extraParams, providerType, providers },
+    body: { name, proxyEndpoint, proxyApiKey, model, activeTabId, tabs, extraParams, providerType, providers, mergeConsecutiveRoles },
   } = req;
 
   const updateData = {};
@@ -31,6 +31,7 @@ router.put('/:id', async (req, res) => {
   if (extraParams) updateData.extraParams = extraParams;
   if (providerType) updateData.providerType = providerType;
   if (providers) updateData.providers = providers;
+  if (typeof mergeConsecutiveRoles === 'boolean') updateData.mergeConsecutiveRoles = mergeConsecutiveRoles;
 
 
   if (name === '') {
