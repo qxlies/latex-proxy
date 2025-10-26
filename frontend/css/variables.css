@@ -1,0 +1,32 @@
+/* CSS Variables */
+:root {
+  --bg1: #0b1020;
+  --bg2: #0d1530;
+  --bg3: #0a0f2a;
+  --fg: #fff;
+  --muted: #9aa3ba;
+  --border: rgba(255,255,255,0.14);
+
+  --panel-fill-1: rgba(255,255,255,0.06);
+  --panel-fill-2: rgba(255,255,255,0.04);
+
+  --accent-1: #7aa2ff;
+  --accent-2: #9d7aff;
+
+  --btn-blue-fill1: rgba(122,162,255,.04);
+  --btn-blue-fill2: rgba(122,162,255,.015);
+  --btn-blue-brd1: rgba(122,162,255,.85);
+  --btn-blue-brd2: rgba(157,122,255,.85);
+
+  --btn-ghost-fill1: rgba(255,255,255,.01);
+  --btn-ghost-fill2: rgba(255,255,255,.005);
+  --btn-ghost-brd1: rgba(150,160,210,.55);
+  --btn-ghost-brd2: rgba(150,120,210,.55);
+
+  --btn-red-fill1: rgba(255,120,120,.04);
+  --btn-red-fill2: rgba(220,80,120,.012);
+  --btn-red-brd1: rgba(255,120,120,.85);
+  --btn-red-brd2: rgba(220,80,120,.85);
+  
+  --btn-green-brd1: #4ade80;
+}

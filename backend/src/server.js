@@ -256,6 +256,26 @@ app.post('/v1/chat/completions', authMiddleware, async (req, res) => {
 
     const body = { ...req.body, ...extra };
 
+    // Add GoRouter-specific parameters
+    if (providerType === 'gorouter' && providers && providers.gorouter) {
+      const gorouterConfig = providers.gorouter;
+      
+      // Add reasoning if thinking is enabled
+      if (gorouterConfig.thinkingEnabled) {
+        body.reasoning = {
+          enabled: true,
+          effort: gorouterConfig.effort || 'medium'
+        };
+      }
+      
+      // Add provider selection if specified
+      if (gorouterConfig.provider && gorouterConfig.provider !== '') {
+        body.provider = {
+          only: [gorouterConfig.provider]
+        };
+      }
+    }
+
     if (model) {
       body.model = model;
     }
@@ -298,7 +318,24 @@ app.post('/v1/chat/completions', authMiddleware, async (req, res) => {
         }
     });
 
-    body.messages = finalMessages;
+    // Merge consecutive roles if enabled
+    let processedMessages = finalMessages;
+    if (activeProfile.mergeConsecutiveRoles) {
+        processedMessages = [];
+        for (let i = 0; i < finalMessages.length; i++) {
+            const currentMsg = finalMessages[i];
+            
+            // If this is the first message or role is different from previous, add it
+            if (processedMessages.length === 0 || processedMessages[processedMessages.length - 1].role !== currentMsg.role) {
+                processedMessages.push({ ...currentMsg });
+            } else {
+                // Same role as previous - merge content
+                processedMessages[processedMessages.length - 1].content += '\n\n' + currentMsg.content;
+            }
+        }
+    }
+
+    body.messages = processedMessages;
     if (lastUserMessage) {
         body.messages.push(lastUserMessage);
     }

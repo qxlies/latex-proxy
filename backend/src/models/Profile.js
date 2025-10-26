@@ -51,6 +51,10 @@ const ProfileSchema = new mongoose.Schema({
      type: String,
      default: '{}',
   },
+  mergeConsecutiveRoles: {
+     type: Boolean,
+     default: true,
+  },
   activeTabId: {
     type: String,
     default: null,

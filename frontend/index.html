@@ -332,6 +332,19 @@
     </section>
 
     <section class="panel">
+      <div class="merge-roles-section">
+        <label class="custom-checkbox merge-roles-toggle">
+          <input type="checkbox" id="mergeConsecutiveRoles" checked>
+          <span class="checkbox-custom"></span>
+          <span class="checkbox-label-text">
+            Merge Consecutive Roles
+            <span class="info-icon" title="When enabled, consecutive messages with the same role (e.g., multiple 'system' messages) will be merged into one. Disable this for advanced experimentation with role sequences to influence model understanding.">
+              <iconify-icon icon="lucide:info"></iconify-icon>
+            </span>
+          </span>
+        </label>
+      </div>
+      
       <div class="editor-split">
         <aside class="tabs-pane">
           <div class="tabs-head">
@@ -417,6 +430,12 @@
         </div>
     </footer>
   </main>
-  <script type="module" src="./app.js"></script>
+  
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-spinner"></div>
+  </div>
+  
+  <script type="module" src="./js/app.js"></script>
 </body>
 </html>
