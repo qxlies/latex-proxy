@@ -48,10 +48,18 @@ const loggingToggle = document.getElementById('loggingToggle');
 
 // Provider elements
 const providerCards = document.querySelectorAll('.provider-card');
+const gorouterSettings = document.getElementById('gorouterSettings');
 const openrouterSettings = document.getElementById('openrouterSettings');
 const freeSettings = document.getElementById('freeSettings');
 const customSettings = document.getElementById('customSettings');
 const aistudioSettings = document.getElementById('aistudioSettings');
+const gorouterApiKeyInput = document.getElementById('gorouterApiKey');
+const gorouterModelInput = document.getElementById('gorouterModel');
+const gorouterModelDropdown = document.getElementById('gorouterModelDropdown');
+const gorouterThinkingEnabled = document.getElementById('gorouterThinkingEnabled');
+const gorouterEffort = document.getElementById('gorouterEffort');
+const gorouterProvider = document.getElementById('gorouterProvider');
+const gorouterEffortField = document.getElementById('gorouterEffortField');
 const openrouterApiKeyInput = document.getElementById('openrouterApiKey');
 const modelSearchInput = document.getElementById('openrouterModel');
 const modelDropdown = document.getElementById('openrouterModelDropdown');
@@ -61,6 +69,7 @@ const customModelInput = document.getElementById('customModel');
 const freeModelSelect = document.getElementById('freeModel');
 const aistudioApiKeyInput = document.getElementById('aistudioApiKey');
 const aistudioModelInput = document.getElementById('aistudioModel');
+const gorouterProviderField = document.getElementById('gorouterProviderField');
 
 
 let state = {
@@ -128,6 +137,9 @@ async function exportProfile() {
   delete profileToExport.__v;
 
   if (profileToExport.providers) {
+    if (profileToExport.providers.gorouter) {
+      delete profileToExport.providers.gorouter.apiKey;
+    }
     if (profileToExport.providers.openrouter) {
       delete profileToExport.providers.openrouter.apiKey;
     }
@@ -180,6 +192,13 @@ async function handleFileImport(event) {
 
             if (importedProfile.providers) {
                 newProfileData.providers = {
+                    gorouter: {
+                        apiKey: '',
+                        model: importedProfile.providers.gorouter?.model || '',
+                        thinkingEnabled: importedProfile.providers.gorouter?.thinkingEnabled || false,
+                        effort: importedProfile.providers.gorouter?.effort || 'medium',
+                        provider: importedProfile.providers.gorouter?.provider || 'Google'
+                    },
                     openrouter: {
                         apiKey: '',
                         model: importedProfile.providers.openrouter?.model || ''
@@ -724,6 +743,7 @@ function fillEditor() {
 
 // Provider System
 let openrouterModels = [];
+let gorouterModels = [];
 
 async function fetchOpenRouterModels() {
     try {
@@ -737,10 +757,32 @@ async function fetchOpenRouterModels() {
     }
 }
 
+async function fetchGorouterModels() {
+    try {
+        const response = await fetch('https://admin.gorouter.bobots.me/api/v1/models/global');
+        const data = await response.json();
+        // Filter only globally allowed models
+        gorouterModels = (data.models || []).filter(model => model.globally_allowed === true);
+        return gorouterModels;
+    } catch (error) {
+        console.error('Failed to fetch GoRouter models:', error);
+        return [];
+    }
+}
+
 function filterModels(query) {
     if (!query) return openrouterModels;
     const lowerQuery = query.toLowerCase();
     return openrouterModels.filter(model =>
+        model.id.toLowerCase().includes(lowerQuery) ||
+        model.name.toLowerCase().includes(lowerQuery)
+    );
+}
+
+function filterGorouterModels(query) {
+    if (!query) return gorouterModels;
+    const lowerQuery = query.toLowerCase();
+    return gorouterModels.filter(model =>
         model.id.toLowerCase().includes(lowerQuery) ||
         model.name.toLowerCase().includes(lowerQuery)
     );
@@ -771,6 +813,43 @@ function selectModel(model) {
     saveProviderSettings();
 }
 
+function renderGorouterModelDropdown(models) {
+    gorouterModelDropdown.innerHTML = '';
+    if (models.length === 0) {
+        gorouterModelDropdown.innerHTML = '<div class="model-option"><div class="model-option-name">No models found</div></div>';
+        return;
+    }
+    
+    models.forEach(model => {
+        const option = document.createElement('div');
+        option.className = 'model-option';
+        
+        // Format pricing info
+        let pricingInfo = '';
+        if (model.pricing) {
+            const tokenMultiplier = parseFloat(model.token_multiplier)
+            pricingInfo = `<span class="model-price">Tok. multiplier: ${tokenMultiplier}x</span>`;
+        }
+        
+        option.innerHTML = `
+            <div class="model-option-header">
+                <div class="model-option-name">${model.name}</div>
+                ${pricingInfo}
+            </div>
+            <div class="model-option-id">${model.id}</div>
+        `;
+        option.onclick = () => selectGorouterModel(model);
+        gorouterModelDropdown.appendChild(option);
+    });
+}
+
+function selectGorouterModel(model) {
+    gorouterModelInput.value = model.id;
+    gorouterModelDropdown.classList.remove('active');
+    updateGorouterProviderFieldVisibility();
+    saveProviderSettings();
+}
+
 function setSectionVisible(el, visible) {
     if (!el) return;
     el.classList.toggle('hidden', !visible);
@@ -784,6 +863,7 @@ async function switchProvider(providerType) {
         p.providers = {};
     }
 
+    if (!p.providers.gorouter) p.providers.gorouter = { apiKey: '', model: '', thinkingEnabled: false, effort: 'medium', provider: 'Google' };
     if (!p.providers.openrouter) p.providers.openrouter = { apiKey: '', model: '' };
     if (!p.providers.aistudio) p.providers.aistudio = { apiKey: '', model: 'gemini-2.5-pro' };
     if (!p.providers.free) p.providers.free = { model: 'gemini-2.5-pro' };
@@ -800,12 +880,32 @@ async function switchProvider(providerType) {
         }
     });
 
+    if (gorouterSettings) gorouterSettings.classList.toggle('active', providerType === 'gorouter');
     if (openrouterSettings) openrouterSettings.classList.toggle('active', providerType === 'openrouter');
     if (aistudioSettings) aistudioSettings.classList.toggle('active', providerType === 'aistudio');
     if (freeSettings) freeSettings.classList.toggle('active', providerType === 'free');
     if (customSettings) customSettings.classList.toggle('active', providerType === 'custom');
 
-    if (providerType === 'openrouter') {
+    if (providerType === 'gorouter') {
+        // Fetch models if not already loaded
+        if (gorouterModels.length === 0) {
+            await fetchGorouterModels();
+        }
+        
+        if (gorouterApiKeyInput) gorouterApiKeyInput.value = p.providers.gorouter.apiKey || '';
+        if (gorouterModelInput) gorouterModelInput.value = p.providers.gorouter.model || '';
+        if (gorouterThinkingEnabled) {
+            gorouterThinkingEnabled.checked = p.providers.gorouter.thinkingEnabled || false;
+            if (gorouterEffortField) {
+                gorouterEffortField.classList.toggle('enabled', gorouterThinkingEnabled.checked);
+            }
+        }
+        if (gorouterEffort) gorouterEffort.value = p.providers.gorouter.effort || 'medium';
+        if (gorouterProvider) gorouterProvider.value = p.providers.gorouter.provider || 'Google';
+        
+        // Show/hide provider field based on model
+        updateGorouterProviderFieldVisibility();
+    } else if (providerType === 'openrouter') {
         if (openrouterModels.length === 0) {
             await fetchOpenRouterModels();
         }
@@ -833,12 +933,19 @@ async function saveProviderSettings() {
         p.providers = {};
     }
 
+    if (!p.providers.gorouter) p.providers.gorouter = { apiKey: '', model: '', thinkingEnabled: false, effort: 'medium', provider: 'Google' };
     if (!p.providers.openrouter) p.providers.openrouter = { apiKey: '', model: '' };
     if (!p.providers.aistudio) p.providers.aistudio = { apiKey: '', model: 'gemini-2.5-pro' };
     if (!p.providers.free) p.providers.free = { model: 'gemini-2.5-pro' };
     if (!p.providers.custom) p.providers.custom = { endpoint: '', apiKey: '', model: '' };
 
-    if (p.providerType === 'openrouter') {
+    if (p.providerType === 'gorouter') {
+        p.providers.gorouter.apiKey = gorouterApiKeyInput ? gorouterApiKeyInput.value : '';
+        p.providers.gorouter.model = gorouterModelInput ? gorouterModelInput.value : '';
+        p.providers.gorouter.thinkingEnabled = gorouterThinkingEnabled ? gorouterThinkingEnabled.checked : false;
+        p.providers.gorouter.effort = gorouterEffort ? gorouterEffort.value : 'medium';
+        p.providers.gorouter.provider = gorouterProvider ? gorouterProvider.value : 'Google';
+    } else if (p.providerType === 'openrouter') {
         p.providers.openrouter.apiKey = openrouterApiKeyInput ? openrouterApiKeyInput.value : '';
         p.providers.openrouter.model = modelSearchInput ? modelSearchInput.value : '';
     } else if (p.providerType === 'aistudio') {
@@ -858,7 +965,11 @@ async function saveProviderSettings() {
         providers: p.providers
     };
 
-    if (p.providerType === 'openrouter') {
+    if (p.providerType === 'gorouter') {
+        updatedFields.proxyEndpoint = 'https://openrouter.ai/api/v1';
+        updatedFields.proxyApiKey = p.providers.gorouter.apiKey;
+        updatedFields.model = p.providers.gorouter.model;
+    } else if (p.providerType === 'openrouter') {
         updatedFields.proxyEndpoint = 'https://openrouter.ai/api/v1';
         updatedFields.proxyApiKey = p.providers.openrouter.apiKey;
         updatedFields.model = p.providers.openrouter.model;
@@ -876,7 +987,40 @@ async function saveProviderSettings() {
         updatedFields.model = p.providers.custom.model;
     }
 
-    updatedFields.extraParams = window.extraParamsEditor ? window.extraParamsEditor.getValue() : '{}';
+    // Handle extra params with GoRouter-specific injections
+    let baseExtraParams = window.extraParamsEditor ? window.extraParamsEditor.getValue() : '{}';
+    
+    if (p.providerType === 'gorouter') {
+        try {
+            let extraParamsObj = JSON.parse(baseExtraParams);
+            
+            // Add reasoning if thinking is enabled
+            if (p.providers.gorouter.thinkingEnabled) {
+                extraParamsObj.reasoning = {
+                    enabled: true,
+                    effort: p.providers.gorouter.effort
+                };
+            } else {
+                delete extraParamsObj.reasoning;
+            }
+            
+            // Add provider selection if specified
+            if (p.providers.gorouter.provider && p.providers.gorouter.provider !== '') {
+                extraParamsObj.provider = {
+                    only: [p.providers.gorouter.provider]
+                };
+            } else {
+                delete extraParamsObj.provider;
+            }
+            
+            updatedFields.extraParams = JSON.stringify(extraParamsObj, null, 2);
+        } catch (e) {
+            console.error('Failed to parse extra params:', e);
+            updatedFields.extraParams = baseExtraParams;
+        }
+    } else {
+        updatedFields.extraParams = baseExtraParams;
+    }
 
     Object.assign(p, updatedFields);
 
@@ -904,14 +1048,19 @@ function fillProfileSettings() {
         p.providers = {};
     }
 
+    if (!p.providers.gorouter) p.providers.gorouter = { apiKey: '', model: '', thinkingEnabled: false, effort: 'medium', provider: 'Google' };
     if (!p.providers.openrouter) p.providers.openrouter = { apiKey: '', model: '' };
     if (!p.providers.aistudio) p.providers.aistudio = { apiKey: '', model: 'gemini-2.5-pro' };
     if (!p.providers.free) p.providers.free = { model: 'gemini-2.5-pro' };
     if (!p.providers.custom) p.providers.custom = { endpoint: '', apiKey: '', model: '' };
 
     if (!p.providerType) {
-
-        if (p.proxyEndpoint === 'free') {
+        // Check if it's GoRouter by checking the endpoint and provider settings
+        if (p.proxyEndpoint && p.proxyEndpoint.includes('openrouter') && p.providers.gorouter && p.providers.gorouter.apiKey) {
+            p.providerType = 'gorouter';
+            p.providers.gorouter.apiKey = p.proxyApiKey || '';
+            p.providers.gorouter.model = p.model || '';
+        } else if (p.proxyEndpoint === 'free') {
             p.providerType = 'free';
             p.providers.free.model = p.model || 'gemini-2.5-pro';
         } else if (p.proxyEndpoint && p.proxyEndpoint.includes('openrouter')) {
@@ -1240,6 +1389,7 @@ if (modelSearchInput) {
 document.addEventListener('click', (e) => {
     if (!e.target.closest('.model-search-wrapper')) {
         modelDropdown && modelDropdown.classList.remove('active');
+        gorouterModelDropdown && gorouterModelDropdown.classList.remove('active');
     }
 });
 
@@ -1249,6 +1399,61 @@ const debouncedProviderSettingsChange = () => {
     providerSettingsTimeout = setTimeout(saveProviderSettings, 500);
 };
 
+// GoRouter event listeners
+if (gorouterApiKeyInput) gorouterApiKeyInput.addEventListener('input', debouncedProviderSettingsChange);
+
+if (gorouterModelInput) {
+    gorouterModelInput.addEventListener('input', (e) => {
+        const query = e.target.value;
+        const filtered = filterGorouterModels(query);
+        renderGorouterModelDropdown(filtered);
+        if (query || filtered.length > 0) {
+            gorouterModelDropdown && gorouterModelDropdown.classList.add('active');
+        } else {
+            gorouterModelDropdown && gorouterModelDropdown.classList.remove('active');
+        }
+        updateGorouterProviderFieldVisibility();
+        debouncedProviderSettingsChange();
+    });
+
+    gorouterModelInput.addEventListener('focus', async () => {
+        if (gorouterModels.length === 0) {
+            await fetchGorouterModels();
+        }
+        const filtered = filterGorouterModels(gorouterModelInput.value);
+        renderGorouterModelDropdown(filtered);
+        gorouterModelDropdown && gorouterModelDropdown.classList.add('active');
+    });
+}
+
+if (gorouterEffort) gorouterEffort.addEventListener('change', debouncedProviderSettingsChange);
+if (gorouterProvider) gorouterProvider.addEventListener('change', debouncedProviderSettingsChange);
+
+// Function to show/hide provider field based on model
+function updateGorouterProviderFieldVisibility() {
+    if (!gorouterProviderField || !gorouterModelInput) return;
+    
+    const modelValue = gorouterModelInput.value.trim();
+    const shouldShow = modelValue.startsWith('anthropic/');
+    
+    if (shouldShow) {
+        gorouterProviderField.style.display = 'grid';
+    } else {
+        gorouterProviderField.style.display = 'none';
+    }
+}
+
+// GoRouter thinking toggle handler
+if (gorouterThinkingEnabled) {
+    gorouterThinkingEnabled.addEventListener('change', (e) => {
+        if (gorouterEffortField) {
+            gorouterEffortField.classList.toggle('enabled', e.target.checked);
+        }
+        debouncedProviderSettingsChange();
+    });
+}
+
+// Other provider event listeners
 if (openrouterApiKeyInput) openrouterApiKeyInput.addEventListener('input', debouncedProviderSettingsChange);
 if (aistudioApiKeyInput) aistudioApiKeyInput.addEventListener('input', debouncedProviderSettingsChange);
 if (aistudioModelInput) aistudioModelInput.addEventListener('input', debouncedProviderSettingsChange);

@@ -1431,6 +1431,16 @@ input:checked + .slider:before {
   justify-content: center;
 }
 
+.provider-card.gorouter iconify-icon {
+  color: #10b981;
+}
+
+.provider-card.gorouter.selected {
+  background: linear-gradient(180deg, rgba(16,185,129,.18), rgba(16,185,129,.10));
+  border-color: rgba(16,185,129,.8);
+  box-shadow: 0 0 0 3px rgba(16,185,129,.25);
+}
+
 .provider-card.openrouter iconify-icon {
   color: #7aa2ff;
 }
@@ -1590,17 +1600,43 @@ input:checked + .slider:before {
   background: rgba(122,162,255,.1);
 }
 
+.model-option-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
 .model-option-name {
   font-weight: 600;
   font-size: 13px;
   color: var(--fg);
-  margin-bottom: 2px;
+  flex: 1;
 }
 
 .model-option-id {
   font-size: 11px;
   color: var(--muted);
   font-family: ui-monospace, monospace;
+}
+
+.model-price {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: rgba(122,162,255,.15);
+  color: #7aa2ff;
+  border: 1px solid rgba(122,162,255,.3);
+  white-space: nowrap;
+  font-family: ui-monospace, monospace;
+}
+
+.model-price.free {
+  background: rgba(74,222,128,.15);
+  color: #4ade80;
+  border-color: rgba(74,222,128,.3);
 }
 
 .free-notice {
@@ -1620,6 +1656,166 @@ input:checked + .slider:before {
 
 .free-notice strong {
   color: #4ade80;
+}
+
+/* GoRouter Styles */
+.provider-badge.free-plan {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+  box-shadow: 0 2px 8px rgba(16,185,129,.3);
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(16,185,129,.3);
+  }
+  50% {
+    box-shadow: 0 2px 12px rgba(16,185,129,.5);
+  }
+}
+
+.gorouter-notice {
+  background: linear-gradient(180deg, rgba(16,185,129,.12), rgba(16,185,129,.06));
+  border: 1px solid rgba(16,185,129,.35);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.gorouter-notice p {
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  color: var(--fg);
+  line-height: 1.6;
+}
+
+.gorouter-notice strong {
+  color: #10b981;
+  font-size: 14px;
+}
+
+.discord-invite-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #5865F2, #4752C4);
+  color: #fff;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 13px;
+  transition: all 0.2s;
+  border: 1px solid rgba(88,101,242,.5);
+}
+
+.discord-invite-btn:hover {
+  background: linear-gradient(135deg, #6875f5, #5865F2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(88,101,242,.4);
+}
+
+.discord-invite-btn iconify-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.gorouter-advanced {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.gorouter-advanced h4 {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+/* Custom Checkbox */
+.custom-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+
+.custom-checkbox input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.checkbox-custom {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  background: rgba(255,255,255,.06);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.custom-checkbox:hover .checkbox-custom {
+  border-color: rgba(16,185,129,.5);
+  background: rgba(255,255,255,.08);
+}
+
+.custom-checkbox input[type="checkbox"]:checked + .checkbox-custom {
+  background: linear-gradient(135deg, #10b981, #059669);
+  border-color: #10b981;
+}
+
+.custom-checkbox input[type="checkbox"]:checked + .checkbox-custom::after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 2px;
+  width: 5px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.checkbox-label-text {
+  font-size: 14px;
+  color: var(--fg);
+  font-weight: 500;
+}
+
+.provider-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 11px;
+  color: #10b981;
+  font-style: italic;
+}
+
+#gorouterEffortField {
+  margin-top: 12px;
+  opacity: 0.5;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+#gorouterEffortField.enabled {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .loading-spinner {

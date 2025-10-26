@@ -122,6 +122,13 @@
       <h3 style="margin: 0 0 16px; font-size: 18px; font-weight: 600;">API Configuration</h3>
       
       <div class="provider-selector">
+        <div class="provider-card gorouter" data-provider="gorouter">
+          <iconify-icon icon="lucide:route"></iconify-icon>
+          <h4>GoRouter</h4>
+          <span class="provider-badge free-plan">FREE PLAN</span>
+          <p>By Latex • 500k tok/day • Claude, OpenAI & more</p>
+        </div>
+
         <div class="provider-card openrouter" data-provider="openrouter">
           <iconify-icon icon="lucide:globe"></iconify-icon>
           <h4>OpenRouter</h4>
@@ -134,16 +141,80 @@
           <p>Access to latest Gemini models</p>
         </div>
         
-        <div class="provider-card free" data-provider="free">
+        <!-- <div class="provider-card free" data-provider="free">
           <iconify-icon icon="lucide:zap"></iconify-icon>
           <h4>Free Access</h4>
           <p>Free models without API key</p>
         </div>
-        
+         -->
         <div class="provider-card custom" data-provider="custom">
           <iconify-icon icon="lucide:settings-2"></iconify-icon>
           <h4>Custom Proxy</h4>
           <p>Use your own OpenAI-compatible endpoint</p>
+        </div>
+      </div>
+
+      <!-- GoRouter Settings -->
+      <div id="gorouterSettings" class="provider-settings">
+        <div class="provider-header">
+          <iconify-icon icon="lucide:route"></iconify-icon>
+          <h3>GoRouter Configuration</h3>
+        </div>
+        <div class="gorouter-notice">
+          <p><strong>🎉 Free Plan Available!</strong><br>
+          API от разработчика Latex с бесплатным Free Plan: 500k токенов в день и доступом к моделям Claude, OpenAI и другим через OpenRouter.</p>
+          <a href="https://discord.gg/Az7pRmY9SR" target="_blank" class="discord-invite-btn">
+            <iconify-icon icon="lucide:message-circle"></iconify-icon>
+            Join Discord Server
+          </a>
+        </div>
+        <div class="field">
+          <span>API Key</span>
+          <input id="gorouterApiKey" type="password" placeholder="Enter your GoRouter API key">
+        </div>
+        <div class="field">
+          <span>Model</span>
+          <div class="model-search-wrapper">
+            <input
+              id="gorouterModel"
+              type="text"
+              placeholder="Select or type model..."
+              autocomplete="off"
+              class="model-search"
+            >
+            <div id="gorouterModelDropdown" class="model-dropdown"></div>
+          </div>
+        </div>
+        
+        <div class="gorouter-advanced">
+          <h4>Advanced Options</h4>
+          
+          <div class="field">
+            <label class="custom-checkbox">
+              <input type="checkbox" id="gorouterThinkingEnabled">
+              <span class="checkbox-custom"></span>
+              <span class="checkbox-label-text">Enable Thinking Mode</span>
+            </label>
+          </div>
+          
+          <div class="field" id="gorouterEffortField">
+            <span>Thinking Effort</span>
+            <select id="gorouterEffort">
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+          
+          <div class="field" id="gorouterProviderField">
+            <span>Provider Selection</span>
+            <select id="gorouterProvider">
+              <option value="">Auto (Default)</option>
+              <option value="Google" selected>Google (No Moderation)</option>
+              <option value="Anthropic">Anthropic</option>
+            </select>
+            <small class="provider-hint">Google provider has no content moderation</small>
+          </div>
         </div>
       </div>
 
@@ -188,7 +259,7 @@
         </div>
       </div>
 
-      <!-- Free Provider Settings -->
+      <!-- Free Provider Settings
       <div id="freeSettings" class="provider-settings">
         <div class="provider-header">
           <iconify-icon icon="lucide:zap"></iconify-icon>
@@ -204,7 +275,7 @@
             <option value="gemini-flash-latest">Gemini Flash Latest</option>
           </select>
         </div>
-      </div>
+      </div> -->
 
       <!-- Custom Proxy Settings -->
       <div id="customSettings" class="provider-settings">

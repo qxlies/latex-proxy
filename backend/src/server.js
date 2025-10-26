@@ -216,6 +216,12 @@ app.post('/v1/chat/completions', authMiddleware, async (req, res) => {
           model = provider.model;
           break;
         
+        case 'gorouter':
+          proxyEndpoint = 'https://gorouter.bobots.me/v1';
+          proxyApiKey = provider.apiKey;
+          model = provider.model;
+          break;
+        
         case 'free':
           proxyEndpoint = FREE_ENDPOINT;
           proxyApiKey = FREE_API_KEY;
