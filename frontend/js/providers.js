@@ -87,7 +87,7 @@ function selectModel(model) {
 // GoRouter Models
 export async function fetchGorouterModels() {
     try {
-        const response = await fetch('https://admin.gorouter.bobots.me/api/v1/models/global');
+        const response = await fetch('https://gorouter.bobots.me/api/v1/models/global');
         const data = await response.json();
         gorouterModels = (data.models || []).filter(model => model.globally_allowed === true);
         return gorouterModels;
