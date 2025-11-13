@@ -11,7 +11,7 @@ interface ParamConfig {
 
 interface RequestParamsEditorProps {
   value: Record<string, any>;
-  onChange: (params: Record<string, any>) => void;
+  onChange: (params: Record<string, any>, enabledOnly: Record<string, any>) => void;
 }
 
 const DEFAULT_PARAMS: ParamConfig[] = [
@@ -27,15 +27,28 @@ function inferType(val: any): 'string' | 'number' | 'boolean' | 'object' {
 
 export function RequestParamsEditor({ value, onChange }: RequestParamsEditorProps) {
   const initializeParams = (val: Record<string, any>) => {
-    // Initialize from value or defaults
-    const existing = Object.entries(val || {}).map(([key, val]) => ({
-      key,
-      enabled: true,
-      value: val,
-      type: inferType(val),
-    }));
+    const hasMetadata = val && Object.values(val).some(v =>
+      v && typeof v === 'object' && 'enabled' in v && 'value' in v
+    );
 
-    // Add defaults that aren't in existing
+    let existing: ParamConfig[] = [];
+    
+    if (hasMetadata) {
+      existing = Object.entries(val || {}).map(([key, meta]: [string, any]) => ({
+        key,
+        enabled: meta.enabled ?? true,
+        value: meta.value,
+        type: inferType(meta.value),
+      }));
+    } else {
+      existing = Object.entries(val || {}).map(([key, val]) => ({
+        key,
+        enabled: true,
+        value: val,
+        type: inferType(val),
+      }));
+    }
+
     const existingKeys = new Set(existing.map(p => p.key));
     const defaults = DEFAULT_PARAMS.filter(p => !existingKeys.has(p.key));
 
@@ -48,7 +61,6 @@ export function RequestParamsEditor({ value, onChange }: RequestParamsEditorProp
   const [showAddParam, setShowAddParam] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Update params when value prop changes (only on first load)
   useEffect(() => {
     if (!isInitialized && value && Object.keys(value).length > 0) {
       setParams(initializeParams(value));
@@ -58,16 +70,23 @@ export function RequestParamsEditor({ value, onChange }: RequestParamsEditorProp
 
   const updateParams = (newParams: ParamConfig[]) => {
     setParams(newParams);
-    
-    // Build output object with only enabled params
-    const output: Record<string, any> = {};
+
+    const fullOutput: Record<string, any> = {};
+    newParams.forEach(p => {
+      fullOutput[p.key] = {
+        enabled: p.enabled,
+        value: p.value
+      };
+    });
+
+    const enabledOutput: Record<string, any> = {};
     newParams.forEach(p => {
       if (p.enabled) {
-        output[p.key] = p.value;
+        enabledOutput[p.key] = p.value;
       }
     });
     
-    onChange(output);
+    onChange(fullOutput, enabledOutput);
   };
 
   const toggleParam = (index: number) => {
@@ -183,10 +202,18 @@ export function RequestParamsEditor({ value, onChange }: RequestParamsEditorProp
         </button>
       </div>
 
-      <p className="text-xs text-white/60 mb-4">
-        Enable or disable parameters to include in API requests. Custom parameters support objects like{' '}
-        <code className="bg-white/10 px-1 py-0.5 rounded">reasoning: {`{enabled: true}`}</code>
-      </p>
+      <div className="text-xs text-white/60 mb-4 space-y-2">
+        <p>
+          <strong className="text-white">Enabled (ON):</strong> <span className="text-green-400">Adds/overrides</span> parameter in API request with your value
+          <br />
+          <strong className="text-white">Disabled (OFF):</strong> <span className="text-red-400">Removes</span> parameter from API request completely
+        </p>
+        <p className="text-white/50">
+          Example: Disable <code className="bg-white/10 px-1 py-0.5 rounded">temperature</code> to exclude it from requests, or enable with custom value to override incoming value.
+          <br />
+          Supports objects: <code className="bg-white/10 px-1 py-0.5 rounded">reasoning: {`{"enabled": true}`}</code>
+        </p>
+      </div>
 
       {/* Add Custom Parameter Form */}
       {showAddParam && (

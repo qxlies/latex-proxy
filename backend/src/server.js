@@ -276,13 +276,23 @@ app.post('/v1/chat/completions', authMiddleware, async (req, res) => {
       console.error("Invalid extraParams JSON:", e);
     }
 
-    // Apply global request parameters if using global provider
-    let requestParams = {};
-    if (activeProfile.useGlobalProvider && user.globalRequestParams) {
-      requestParams = user.globalRequestParams;
-    }
+    const body = { ...req.body, ...extra };
 
-    const body = { ...req.body, ...requestParams, ...extra };
+    if (activeProfile.useGlobalProvider && user.globalRequestParams) {
+      const params = user.globalRequestParams;
+      for (const key in params) {
+        const param = params[key];
+        if (param && typeof param === 'object' && 'enabled' in param && 'value' in param) {
+          if (param.enabled) {
+            body[key] = param.value;
+          } else {
+            delete body[key];
+          }
+        } else {
+          body[key] = param;
+        }
+      }
+    }
 
     // Add GoRouter-specific parameters
     if (providerType === 'gorouter' && providers && providers.gorouter) {

@@ -142,11 +142,13 @@ export function ProvidersPage() {
     saveSettings(updates);
   };
 
-  const handleRequestParamsChange = (params: Record<string, any>) => {
-    setRequestParams(params);
+  const handleRequestParamsChange = (fullParams: Record<string, any>, enabledParams: Record<string, any>) => {
+    // Store full params with metadata locally for UI
+    setRequestParams(fullParams);
     
+    // Save full params to backend (includes enabled status)
     const updates: any = {
-      globalRequestParams: params,
+      globalRequestParams: fullParams,
     };
     
     saveSettings(updates);
