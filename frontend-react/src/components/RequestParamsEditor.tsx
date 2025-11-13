@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
 import { Card } from './ui';
 
@@ -15,6 +15,7 @@ interface RequestParamsEditorProps {
 }
 
 const DEFAULT_PARAMS: ParamConfig[] = [
+  { key: 'test', enabled: false, value: 0.0, type: 'number' },
 ];
 
 function inferType(val: any): 'string' | 'number' | 'boolean' | 'object' {
@@ -25,9 +26,9 @@ function inferType(val: any): 'string' | 'number' | 'boolean' | 'object' {
 }
 
 export function RequestParamsEditor({ value, onChange }: RequestParamsEditorProps) {
-  const [params, setParams] = useState<ParamConfig[]>(() => {
+  const initializeParams = (val: Record<string, any>) => {
     // Initialize from value or defaults
-    const existing = Object.entries(value || {}).map(([key, val]) => ({
+    const existing = Object.entries(val || {}).map(([key, val]) => ({
       key,
       enabled: true,
       value: val,
@@ -39,11 +40,17 @@ export function RequestParamsEditor({ value, onChange }: RequestParamsEditorProp
     const defaults = DEFAULT_PARAMS.filter(p => !existingKeys.has(p.key));
 
     return [...existing, ...defaults];
-  });
+  };
 
+  const [params, setParams] = useState<ParamConfig[]>(() => initializeParams(value));
   const [newParamKey, setNewParamKey] = useState('');
   const [newParamValue, setNewParamValue] = useState('');
   const [showAddParam, setShowAddParam] = useState(false);
+
+  // Update params when value prop changes
+  useEffect(() => {
+    setParams(initializeParams(value));
+  }, [value]);
 
   const updateParams = (newParams: ParamConfig[]) => {
     setParams(newParams);
