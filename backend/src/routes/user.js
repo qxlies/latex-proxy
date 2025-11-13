@@ -67,7 +67,7 @@ router.put('/me/profile-order', async (req, res) => {
 });
 
 router.put('/me/global-provider', async (req, res) => {
-   const { globalProviderType, globalProviders } = req.body;
+   const { globalProviderType, globalProviders, globalRequestParams } = req.body;
    try {
        const updateData = {};
        if (globalProviderType !== undefined) {
@@ -75,6 +75,9 @@ router.put('/me/global-provider', async (req, res) => {
        }
        if (globalProviders !== undefined) {
            updateData.globalProviders = globalProviders;
+       }
+       if (globalRequestParams !== undefined) {
+           updateData.globalRequestParams = globalRequestParams;
        }
        
        const user = await User.findByIdAndUpdate(
@@ -88,7 +91,8 @@ router.put('/me/global-provider', async (req, res) => {
        }
        res.status(200).json({
            globalProviderType: user.globalProviderType,
-           globalProviders: user.globalProviders
+           globalProviders: user.globalProviders,
+           globalRequestParams: user.globalRequestParams
        });
    } catch (error) {
        res.status(500).json({ error: error.message });
