@@ -9,7 +9,7 @@ import { tokenCount, getErrorMessage, debounce } from '../lib/utils';
 import type { Tab } from '../types';
 
 export function EditorPage() {
-  const { getCurrentProfile, updateProfile, updateTab, addTab, removeTab, reorderTabs } = useStore();
+  const { getCurrentProfile, updateProfile, updateTab, removeTab, reorderTabs } = useStore();
   const profile = getCurrentProfile();
 
   const [selectedTabId, setSelectedTabId] = useState<string | null>(null);
@@ -20,7 +20,40 @@ export function EditorPage() {
   const [roleOpen, setRoleOpen] = useState(false);
   const roleRef = useRef<HTMLDivElement | null>(null);
 
+  // Resizable height state (desktop)
+  const [paneHeight, setPaneHeight] = useState<number>(600);
+  const panesRef = useRef<HTMLDivElement | null>(null);
+  const isVResizingRef = useRef(false);
+
   useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (!panesRef.current || !isVResizingRef.current) return;
+      const rect = panesRef.current.getBoundingClientRect();
+
+      const minH = 350;
+      const maxH = 1000;
+      const nextH = Math.max(minH, Math.min(maxH, Math.floor(e.clientY - rect.top)));
+      setPaneHeight(nextH);
+      e.preventDefault();
+    };
+
+    const onUp = () => {
+      if (!isVResizingRef.current) return;
+      isVResizingRef.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    return () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+  }, []);
+
+
+ useEffect(() => {
     if (!roleOpen) return;
     const onDoc = (e: MouseEvent) => {
       if (roleRef.current && !roleRef.current.contains(e.target as Node)) {
@@ -99,18 +132,20 @@ export function EditorPage() {
       };
       const { tab } = await api.createTab(profile._id, newTab);
 
-      addTab(profile._id, tab);
       setSelectedTabId(tab.id);
 
-      const tabs = [...profile.tabs, tab];
-      const chatIdx = tabs.findIndex((t) => t.content === '{chat_history}');
-      
-      if (chatIdx !== -1 && chatIdx === tabs.length - 2) {
-        const [newItem] = tabs.splice(tabs.length - 1, 1);
-        tabs.splice(chatIdx, 0, newItem);
-        reorderTabs(profile._id, tabs);
-        await api.moveTabs(profile._id, tabs as any);
+      const existing = [...profile.tabs];
+      const chatIdx = existing.findIndex((t) => t.content === '{chat_history}');
+     
+      let chatTab: Tab | undefined;
+      if (chatIdx !== -1) {
+        chatTab = existing.splice(chatIdx, 1)[0];
       }
+      const newOrder: Tab[] = [tab as Tab, ...existing];
+      if (chatTab) newOrder.push(chatTab);
+
+      reorderTabs(profile._id, newOrder);
+      await api.moveTabs(profile._id, newOrder);
     } catch (err) {
       alert(getErrorMessage(err));
     }
@@ -176,7 +211,7 @@ export function EditorPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 overflow-x-hidden">
+    <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -226,16 +261,17 @@ export function EditorPage() {
         </div>
       </motion.div>
 
-      {/* Editor Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-        {/* Tabs List */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.1 }}
-          className="lg:col-span-4 lg:sticky lg:top-4 self-start"
-        >
-          <Card className="h-full flex flex-col min-h-[calc(100vh-240px)]">
+      {/* Editor Grid with Resizer */}
+      <div className="flex flex-col gap-0">
+        <div ref={panesRef} className="grid gap-6 items-stretch lg:grid-cols-[360px_1fr]" style={{ height: paneHeight }}>
+          {/* Tabs List */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1 }}
+            className="overflow-hidden"
+          >
+            <Card className="h-full flex flex-col overflow-hidden">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold">Tabs</h3>
               <Button variant="success" size="sm" onClick={handleAddTab}>
@@ -356,17 +392,17 @@ export function EditorPage() {
               </Droppable>
             </DragDropContext>
           </Card>
-        </motion.div>
+          </motion.div>
 
-        {/* Editor */}
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
-          className="lg:col-span-8"
-        >
+          {/* Editor */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+            className="lg:flex-1"
+          >
           {selectedTab ? (
-            <Card className="h-full flex flex-col min-h-[calc(100vh-240px)]">
+            <Card className="h-full flex flex-col overflow-hidden">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold">Edit Tab</h3>
                 {isProtectedTab && (
@@ -377,7 +413,7 @@ export function EditorPage() {
                 )}
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-4 overflow-y-auto pr-1 custom-scrollbar">
                 {/* Role & Title */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -446,7 +482,7 @@ export function EditorPage() {
                     onChange={(e) => handleContentChange(e.target.value)}
                     readOnly={isProtectedTab}
                     placeholder="Enter tab content..."
-                    className="input min-h-[400px] font-mono text-sm resize-y disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="input min-h-[300px] font-mono text-sm resize-y disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                   {isProtectedTab && (
                     <p className="mt-2 text-xs text-yellow-400 flex items-center gap-1">
@@ -492,8 +528,25 @@ export function EditorPage() {
                 Select a tab from the list or create a new one
               </p>
             </Card>
-          )}
-        </motion.div>
+            )}
+          </motion.div>
+        </div>
+
+        {/* Vertical resize handle for both panes (desktop) */}
+        <div
+          className="hidden lg:flex items-center justify-center cursor-row-resize bg-white/10 hover:bg-accent-1/30 active:bg-accent-1/40 transition-colors rounded-lg mt-2"
+          onMouseDown={() => {
+            isVResizingRef.current = true;
+            document.body.style.cursor = 'row-resize';
+            document.body.style.userSelect = 'none';
+          }}
+          style={{ height: '10px', borderRadius: '6px' }}
+        >
+          <div className="flex gap-1">
+            <div className="w-10 h-1 bg-white/40 rounded-full" />
+            <div className="w-10 h-1 bg-white/40 rounded-full" />
+          </div>
+        </div>
       </div>
     </div>
   );

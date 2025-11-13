@@ -74,6 +74,7 @@ All subsequent blocks constitute this mandatory guide.` },
       });
 
       addProfile(profile);
+      setSelectedProfileId(profile._id);
       setNewProfileName('');
       setIsCreating(false);
       setError('');
@@ -162,6 +163,7 @@ All subsequent blocks constitute this mandatory guide.` },
         data.name = `${data.name} (imported)`;
         const { profile } = await api.createProfile(data);
         addProfile(profile);
+        setSelectedProfileId(profile._id);
       } catch (err) {
         alert(getErrorMessage(err));
       }

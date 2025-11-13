@@ -28,8 +28,13 @@
 
 @layer components {
   /* Custom scrollbar */
+  .custom-scrollbar {
+    /* Firefox thin scrollbar */
+    scrollbar-width: thin;
+  }
   .custom-scrollbar::-webkit-scrollbar {
-    width: 8px;
+    /* Thinner scrollbar for WebKit */
+    width: 4px;
   }
   
   .custom-scrollbar::-webkit-scrollbar-track {
@@ -40,7 +45,7 @@
   .custom-scrollbar::-webkit-scrollbar-thumb {
     background: linear-gradient(180deg, rgba(122,162,255,.25), rgba(122,162,255,.12));
     border-radius: 8px;
-    border: 2px solid transparent;
+    border: 1px solid transparent;
     background-clip: padding-box;
   }
   
