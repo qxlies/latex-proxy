@@ -137,16 +137,15 @@ export function EditorPage() {
 
       const existing = [...profile.tabs];
       const chatIdx = existing.findIndex((t) => t.content === '{chat_history}');
-     
-      let chatTab: Tab | undefined;
+      
       if (chatIdx !== -1) {
-        chatTab = existing.splice(chatIdx, 1)[0];
+        existing.splice(chatIdx, 0, tab as Tab);
+      } else {
+        existing.push(tab as Tab);
       }
-      const newOrder: Tab[] = [tab as Tab, ...existing];
-      if (chatTab) newOrder.push(chatTab);
 
-      reorderTabs(profile._id, newOrder);
-      await api.moveTabs(profile._id, newOrder);
+      reorderTabs(profile._id, existing);
+      await api.moveTabs(profile._id, existing);
     } catch (err) {
       alert(getErrorMessage(err));
     }
@@ -224,23 +223,19 @@ export function EditorPage() {
       };
       const { tab } = await api.createTab(profile._id, newTab);
 
-      // Insert at specified position
       const existing = [...profile.tabs];
       const chatIdx = existing.findIndex((t) => t.content === '{chat_history}');
-      
-      let chatTab: Tab | undefined;
-      if (chatIdx !== -1) {
-        chatTab = existing.splice(chatIdx, 1)[0];
+
+      let insertPos = position;
+
+      if (chatIdx !== -1 && position >= chatIdx) {
+        insertPos = chatIdx;
       }
-
-      // Insert at position
-      existing.splice(position, 0, tab as Tab);
       
-      const newOrder: Tab[] = [...existing];
-      if (chatTab) newOrder.push(chatTab);
+      existing.splice(insertPos, 0, tab as Tab);
 
-      reorderTabs(profile._id, newOrder);
-      await api.moveTabs(profile._id, newOrder);
+      reorderTabs(profile._id, existing);
+      await api.moveTabs(profile._id, existing);
       
       setSelectedTabId(tab.id);
     } catch (err) {
