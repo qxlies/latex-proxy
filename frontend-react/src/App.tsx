@@ -102,6 +102,12 @@ function App() {
 
 function ChangelogPage() {
   const items = [
+    { version: '1.0.1', date: '2025-11-13', notes: [
+      'Mobile site layout improvements',
+      'Minor bug fixes',
+      '[NEW] Content filters - lets you block or replace certain parts of the bot\'s script or personality that come through in requests. You can easily analyze the last request if you turn on logging. There\'s also an AI assistant—see the next point',
+      'AI assistant in the tab editor and content filters - will review your prompt, answer questions, and edit/create new tabs for you.'
+    ]},
     { version: '1.0.0', date: '2025-11-13', notes: [
       '🎉 Initial Release',
       'Modular prompt system with tabs',
