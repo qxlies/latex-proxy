@@ -3,7 +3,7 @@ FROM node:20-bookworm-slim AS frontend-build
 WORKDIR /app/frontend-react
 
 COPY frontend-react/package*.json ./
-RUN npm ci
+RUN npm install --legacy-peer-deps
 
 ARG VITE_API_URL=
 ENV VITE_API_URL=${VITE_API_URL}
