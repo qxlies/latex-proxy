@@ -11,7 +11,7 @@ interface ParamConfig {
 
 interface RequestParamsEditorProps {
   value: Record<string, any>;
-  onChange: (params: Record<string, any>, enabledOnly: Record<string, any>) => void;
+  onChange: (params: Record<string, any>) => void;
 }
 
 const DEFAULT_PARAMS: ParamConfig[] = [
@@ -78,15 +78,8 @@ export function RequestParamsEditor({ value, onChange }: RequestParamsEditorProp
         value: p.value
       };
     });
-
-    const enabledOutput: Record<string, any> = {};
-    newParams.forEach(p => {
-      if (p.enabled) {
-        enabledOutput[p.key] = p.value;
-      }
-    });
     
-    onChange(fullOutput, enabledOutput);
+    onChange(fullOutput);
   };
 
   const toggleParam = (index: number) => {
