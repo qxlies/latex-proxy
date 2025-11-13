@@ -25,7 +25,16 @@ const PORT = process.env.PORT || 3000
 const FREE_ENDPOINT = process.env.ENDPOINT
 const FREE_API_KEY = process.env.API_KEY
 
-app.use(express.static(path.join(__dirname, '../../frontend')))
+const reactBuildPath = path.join(__dirname, '../../frontend-react/dist');
+const vanillaFrontendPath = path.join(__dirname, '../../frontend');
+
+if (fs.existsSync(reactBuildPath)) {
+  console.log('Serving React build from:', reactBuildPath);
+  app.use(express.static(reactBuildPath));
+} else {
+  console.log('Serving vanilla frontend from:', vanillaFrontendPath);
+  app.use(express.static(vanillaFrontendPath));
+}
 
 app.use((req, res, next) => {
   res.setHeader('access-control-allow-origin', '*')
@@ -445,6 +454,14 @@ app.post('/v1/chat/completions', authMiddleware, async (req, res) => {
   } catch (e) {
     if (!res.headersSent) res.status(500).json({ error: { message: e.message, type: 'proxy_error' } });
     else if (!res.writableEnded) res.end();
+  }
+});
+
+app.get('*', (req, res) => {
+  if (fs.existsSync(reactBuildPath)) {
+    res.sendFile(path.join(reactBuildPath, 'index.html'));
+  } else {
+    res.sendFile(path.join(vanillaFrontendPath, 'index.html'));
   }
 });
 
