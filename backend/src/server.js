@@ -282,20 +282,20 @@ app.post('/v1/chat/completions', authMiddleware, async (req, res) => {
     if (providerType === 'gorouter' && providers && providers.gorouter) {
       const gorouterConfig = providers.gorouter;
       
-      // Add reasoning if thinking is enabled
-      if (gorouterConfig.thinkingEnabled) {
-        body.reasoning = {
-          enabled: true,
-          effort: gorouterConfig.effort || 'medium'
-        };
-      }
+      // // Add reasoning if thinking is enabled
+      // if (gorouterConfig.thinkingEnabled) {
+      //   body.reasoning = {
+      //     enabled: true,
+      //     effort: gorouterConfig.effort || 'medium'
+      //   };
+      // }
       
-      // Add provider selection if specified
-      if (gorouterConfig.provider && gorouterConfig.provider !== '') {
-        body.provider = {
-          only: [gorouterConfig.provider]
-        };
-      }
+      // // Add provider selection if specified
+      // if (gorouterConfig.provider && gorouterConfig.provider !== '') {
+      //   body.provider = {
+      //     only: [gorouterConfig.provider]
+      //   };
+      // }
     }
 
     if (model) {
