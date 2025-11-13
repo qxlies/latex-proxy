@@ -57,6 +57,11 @@ const UserSchema = new mongoose.Schema({
       custom: { endpoint: '', apiKey: '', model: '' }
     }
   },
+  // Global request parameters (temperature, max_tokens, etc.)
+  globalRequestParams: {
+    type: Object,
+    default: {}
+  },
   // Content filters (banned text patterns with optional replacement)
   contentFilters: {
     type: [{

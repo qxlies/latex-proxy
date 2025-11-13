@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Icon } from '@iconify/react';
 import { Card, Input } from '../components/ui';
+import { RequestParamsEditor } from '../components/RequestParamsEditor';
 import { useStore } from '../store/useStore';
 import { api } from '../lib/api';
 import { debounce } from '../lib/utils';
@@ -44,6 +45,7 @@ export function ProvidersPage() {
   
   const [selectedProvider, setSelectedProvider] = useState<ProviderType>('gorouter');
   const [settings, setSettings] = useState<any>({});
+  const [requestParams, setRequestParams] = useState<Record<string, any>>({});
   const [openrouterModels, setOpenrouterModels] = useState<any[]>([]);
   const [modelSearch, setModelSearch] = useState('');
   const [showModelDropdown, setShowModelDropdown] = useState(false);
@@ -54,6 +56,7 @@ export function ProvidersPage() {
     if (user && !initialized.current) {
       setSelectedProvider(user.globalProviderType || 'gorouter');
       setSettings(user.globalProviders || {});
+      setRequestParams(user.globalRequestParams || {});
       initialized.current = true;
     }
   }, [user?._id]);
@@ -136,6 +139,16 @@ export function ProvidersPage() {
       globalProviders: newSettings,
     };
 
+    saveSettings(updates);
+  };
+
+  const handleRequestParamsChange = (params: Record<string, any>) => {
+    setRequestParams(params);
+    
+    const updates: any = {
+      globalRequestParams: params,
+    };
+    
     saveSettings(updates);
   };
 
@@ -437,6 +450,18 @@ export function ProvidersPage() {
             </div>
           )}
         </Card>
+      </motion.div>
+
+      {/* Request Parameters Editor */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+      >
+        <RequestParamsEditor
+          value={requestParams}
+          onChange={handleRequestParamsChange}
+        />
       </motion.div>
     </div>
   );

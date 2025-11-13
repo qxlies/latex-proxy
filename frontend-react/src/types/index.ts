@@ -36,6 +36,7 @@ export interface User {
   isLoggingEnabled: boolean;
   globalProviderType?: ProviderType;
   globalProviders?: ProviderConfig;
+  globalRequestParams?: Record<string, any>;
   contentFilters?: ContentFilter[];
   filterGroups?: FilterGroup[];
   lastRequestData?: LastRequestData;
