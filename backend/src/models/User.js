@@ -120,6 +120,23 @@ UserSchema.pre('save', async function () {
   this.password = await bcrypt.hash(this.password, salt);
 });
 
+// Initialize missing fields for existing users
+UserSchema.post('findOne', function(doc) {
+  if (doc && !doc.globalRequestParams) {
+    doc.globalRequestParams = {};
+  }
+});
+
+UserSchema.post('find', function(docs) {
+  if (Array.isArray(docs)) {
+    docs.forEach(doc => {
+      if (doc && !doc.globalRequestParams) {
+        doc.globalRequestParams = {};
+      }
+    });
+  }
+});
+
 UserSchema.methods.createJWT = function () {
   return jwt.sign({ userId: this._id, login: this.login }, process.env.JWT_SECRET, {
     expiresIn: '30d',
