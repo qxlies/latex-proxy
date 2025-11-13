@@ -10,6 +10,7 @@ const navItems = [
   { path: '/profiles', icon: 'lucide:folder', label: 'Profiles' },
   { path: '/editor', icon: 'lucide:edit', label: 'Editor' },
   { path: '/providers', icon: 'lucide:settings', label: 'Providers' },
+  { path: '/filters', icon: 'lucide:filter', label: 'Filters' },
   { path: '/logs', icon: 'lucide:file-text', label: 'Logs' },
   { path: '/faq', icon: 'lucide:help-circle', label: 'FAQ' },
   { path: '/changelog', icon: 'lucide:book-open', label: 'Changelog' },

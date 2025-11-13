@@ -6,6 +6,10 @@ import type {
   LogsResponse,
   Profile,
   Tab,
+  ContentFilter,
+  FilterGroup,
+  LastRequestData,
+  AISuggestion,
 } from '../types';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -98,6 +102,16 @@ class ApiClient {
     });
   }
 
+  async updateGlobalProvider(data: {
+    globalProviderType?: string;
+    globalProviders?: any;
+  }): Promise<any> {
+    return this.request<any>('/api/users/me/global-provider', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
   // Profile endpoints
   async getProfiles(): Promise<ProfilesResponse> {
     return this.request<ProfilesResponse>('/api/profiles');
@@ -173,6 +187,112 @@ class ApiClient {
   // Logs endpoints
   async getLogs(page: number = 1): Promise<LogsResponse> {
     return this.request<LogsResponse>(`/api/logs?page=${page}`);
+  }
+
+  // Content Filters endpoints
+  async getContentFilters(): Promise<{
+    contentFilters: ContentFilter[];
+    filterGroups: FilterGroup[];
+    lastRequestData: LastRequestData | null;
+  }> {
+    return this.request<{
+      contentFilters: ContentFilter[];
+      filterGroups: FilterGroup[];
+      lastRequestData: LastRequestData | null;
+    }>('/api/users/me/content-filters');
+  }
+
+  async createContentFilter(data: {
+    pattern: string;
+    replacement?: string | null;
+    caseSensitive?: boolean;
+    group?: string | null;
+  }): Promise<{ filter: ContentFilter }> {
+    return this.request<{ filter: ContentFilter }>(
+      '/api/users/me/content-filters',
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }
+    );
+  }
+
+  async createContentFiltersBulk(filters: Array<{
+    pattern: string;
+    replacement?: string | null;
+    caseSensitive?: boolean;
+    group?: string | null;
+  }>): Promise<{ filters: ContentFilter[] }> {
+    return this.request<{ filters: ContentFilter[] }>(
+      '/api/users/me/content-filters/bulk',
+      {
+        method: 'POST',
+        body: JSON.stringify({ filters }),
+      }
+    );
+  }
+
+  async toggleGroupFilters(group: string, enabled: boolean): Promise<{ count: number }> {
+    return this.request<{ count: number }>(
+      '/api/users/me/content-filters/group/toggle',
+      {
+        method: 'PUT',
+        body: JSON.stringify({ group, enabled }),
+      }
+    );
+  }
+
+  async deleteGroupFilters(group: string): Promise<{ count: number }> {
+    return this.request<{ count: number }>(
+      `/api/users/me/content-filters/group/${encodeURIComponent(group)}`,
+      {
+        method: 'DELETE',
+      }
+    );
+  }
+
+  async updateContentFilter(
+    filterId: string,
+    data: Partial<ContentFilter>
+  ): Promise<{ filter: ContentFilter }> {
+    return this.request<{ filter: ContentFilter }>(
+      `/api/users/me/content-filters/${filterId}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }
+    );
+  }
+
+  async deleteContentFilter(filterId: string): Promise<void> {
+    return this.request<void>(`/api/users/me/content-filters/${filterId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async renameFilterGroup(groupId: string, name: string): Promise<{ group: FilterGroup }> {
+    return this.request<{ group: FilterGroup }>(
+      `/api/users/me/filter-groups/${encodeURIComponent(groupId)}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({ name }),
+      }
+    );
+  }
+
+  async analyzePrompt(question: string): Promise<{
+    analysis: string;
+    suggestions: AISuggestion[];
+    usage?: any;
+  }> {
+    return this.request<{
+      analysis: string;
+      suggestions: AISuggestion[];
+      usage?: any;
+    }>('/api/users/me/analyze-prompt', {
+      method: 'POST',
+      body: JSON.stringify({ question }),
+    });
   }
 }
 

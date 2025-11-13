@@ -27,6 +27,7 @@ export function ProfilesPage() {
   const [newProfileName, setNewProfileName] = useState('');
   const [error, setError] = useState('');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [providerModalProfile, setProviderModalProfile] = useState<Profile | null>(null);
 
   // Close mobile "More" dropdown on ESC or scroll
   useEffect(() => {
@@ -310,7 +311,10 @@ All subsequent blocks constitute this mandatory guide.` },
                             </div>
                             <p className="text-sm text-white/60">
                               {profile.tabs.length} tabs •{' '}
-                              {profile.tabs.filter((t) => t.enabled).length} enabled
+                              {profile.tabs.filter((t) => t.enabled).length} enabled •{' '}
+                              <span className={profile.useGlobalProvider !== false ? 'text-emerald-400' : 'text-blue-400'}>
+                                {profile.useGlobalProvider !== false ? 'Global Provider' : `Custom (${profile.providerType})`}
+                              </span>
                             </p>
                           </div>
 
@@ -334,6 +338,15 @@ All subsequent blocks constitute this mandatory guide.` },
                               title="Set for API"
                             >
                               <Icon icon="lucide:zap" className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="px-2 py-1"
+                              onClick={() => setProviderModalProfile(profile)}
+                              title="Provider Settings"
+                            >
+                              <Icon icon="lucide:settings" className="w-4 h-4" />
                             </Button>
 
                             {/* Secondary actions: inline on md+, collapsible on mobile */}
@@ -407,6 +420,19 @@ All subsequent blocks constitute this mandatory guide.` },
                                         className="w-full justify-start"
                                         onClick={() => {
                                           setOpenMenuId(null);
+                                          setProviderModalProfile(profile);
+                                        }}
+                                        title="Provider Settings"
+                                      >
+                                        <Icon icon="lucide:settings" className="w-4 h-4" />
+                                        <span className="ml-2">Provider Settings</span>
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="w-full justify-start"
+                                        onClick={() => {
+                                          setOpenMenuId(null);
                                           handleExportProfile(profile);
                                         }}
                                         title="Export"
@@ -470,6 +496,203 @@ All subsequent blocks constitute this mandatory guide.` },
           )}
         </Droppable>
       </DragDropContext>
+
+      {/* Provider Settings Modal */}
+      <AnimatePresence>
+        {providerModalProfile && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            onClick={() => setProviderModalProfile(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md"
+            >
+              <Card>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">Provider Settings</h3>
+                  <button
+                    onClick={() => setProviderModalProfile(null)}
+                    className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                  >
+                    <Icon icon="lucide:x" className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <p className="text-sm text-white/60 mb-4">
+                  Choose provider for <strong>{providerModalProfile.name}</strong>
+                </p>
+
+                <div className="space-y-2">
+                  <button
+                    onClick={async () => {
+                      await api.updateProfile(providerModalProfile._id, { useGlobalProvider: true });
+                      updateProfile(providerModalProfile._id, { useGlobalProvider: true });
+                      setProviderModalProfile(null);
+                    }}
+                    className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
+                      providerModalProfile.useGlobalProvider !== false
+                        ? 'border-emerald-400/60 bg-emerald-500/10'
+                        : 'border-white/14 bg-white/5 hover:bg-white/8'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon icon="lucide:globe" className="w-5 h-5 text-emerald-400" />
+                      <div className="flex-1">
+                        <div className="font-semibold">Use Global Provider</div>
+                        <div className="text-xs text-white/60">
+                          Use account-wide provider settings
+                        </div>
+                      </div>
+                      {providerModalProfile.useGlobalProvider !== false && (
+                        <Icon icon="lucide:check" className="w-5 h-5 text-emerald-400" />
+                      )}
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={async () => {
+                      await api.updateProfile(providerModalProfile._id, {
+                        useGlobalProvider: false,
+                        providerType: 'gorouter'
+                      });
+                      updateProfile(providerModalProfile._id, {
+                        useGlobalProvider: false,
+                        providerType: 'gorouter'
+                      });
+                      setProviderModalProfile(null);
+                    }}
+                    className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
+                      providerModalProfile.useGlobalProvider === false && providerModalProfile.providerType === 'gorouter'
+                        ? 'border-green-400/60 bg-green-500/10'
+                        : 'border-white/14 bg-white/5 hover:bg-white/8'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon icon="lucide:route" className="w-5 h-5 text-green-400" />
+                      <div className="flex-1">
+                        <div className="font-semibold">GoRouter</div>
+                        <div className="text-xs text-white/60">
+                          Free plan with 500k tok/day
+                        </div>
+                      </div>
+                      {providerModalProfile.useGlobalProvider === false && providerModalProfile.providerType === 'gorouter' && (
+                        <Icon icon="lucide:check" className="w-5 h-5 text-green-400" />
+                      )}
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={async () => {
+                      await api.updateProfile(providerModalProfile._id, {
+                        useGlobalProvider: false,
+                        providerType: 'openrouter'
+                      });
+                      updateProfile(providerModalProfile._id, {
+                        useGlobalProvider: false,
+                        providerType: 'openrouter'
+                      });
+                      setProviderModalProfile(null);
+                    }}
+                    className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
+                      providerModalProfile.useGlobalProvider === false && providerModalProfile.providerType === 'openrouter'
+                        ? 'border-blue-400/60 bg-blue-500/10'
+                        : 'border-white/14 bg-white/5 hover:bg-white/8'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon icon="lucide:globe" className="w-5 h-5 text-blue-400" />
+                      <div className="flex-1">
+                        <div className="font-semibold">OpenRouter</div>
+                        <div className="text-xs text-white/60">
+                          Access 200+ AI models
+                        </div>
+                      </div>
+                      {providerModalProfile.useGlobalProvider === false && providerModalProfile.providerType === 'openrouter' && (
+                        <Icon icon="lucide:check" className="w-5 h-5 text-blue-400" />
+                      )}
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={async () => {
+                      await api.updateProfile(providerModalProfile._id, {
+                        useGlobalProvider: false,
+                        providerType: 'aistudio'
+                      });
+                      updateProfile(providerModalProfile._id, {
+                        useGlobalProvider: false,
+                        providerType: 'aistudio'
+                      });
+                      setProviderModalProfile(null);
+                    }}
+                    className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
+                      providerModalProfile.useGlobalProvider === false && providerModalProfile.providerType === 'aistudio'
+                        ? 'border-orange-400/60 bg-orange-500/10'
+                        : 'border-white/14 bg-white/5 hover:bg-white/8'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon icon="lucide:git-pull-request-arrow" className="w-5 h-5 text-orange-400" />
+                      <div className="flex-1">
+                        <div className="font-semibold">Google AI Studio</div>
+                        <div className="text-xs text-white/60">
+                          Latest Gemini models
+                        </div>
+                      </div>
+                      {providerModalProfile.useGlobalProvider === false && providerModalProfile.providerType === 'aistudio' && (
+                        <Icon icon="lucide:check" className="w-5 h-5 text-orange-400" />
+                      )}
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={async () => {
+                      await api.updateProfile(providerModalProfile._id, {
+                        useGlobalProvider: false,
+                        providerType: 'custom'
+                      });
+                      updateProfile(providerModalProfile._id, {
+                        useGlobalProvider: false,
+                        providerType: 'custom'
+                      });
+                      setProviderModalProfile(null);
+                    }}
+                    className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
+                      providerModalProfile.useGlobalProvider === false && providerModalProfile.providerType === 'custom'
+                        ? 'border-purple-400/60 bg-purple-500/10'
+                        : 'border-white/14 bg-white/5 hover:bg-white/8'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon icon="lucide:settings-2" className="w-5 h-5 text-purple-400" />
+                      <div className="flex-1">
+                        <div className="font-semibold">Custom Proxy</div>
+                        <div className="text-xs text-white/60">
+                          Your own endpoint
+                        </div>
+                      </div>
+                      {providerModalProfile.useGlobalProvider === false && providerModalProfile.providerType === 'custom' && (
+                        <Icon icon="lucide:check" className="w-5 h-5 text-purple-400" />
+                      )}
+                    </div>
+                  </button>
+                </div>
+
+                <p className="text-xs text-white/40 mt-4">
+                  Note: If you select a custom provider, configure it in the Providers page
+                </p>
+              </Card>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { ProfilesPage } from './pages/Profiles';
 import { EditorPage } from './pages/Editor';
 import { ProvidersPage } from './pages/Providers';
 import { LogsPage } from './pages/Logs';
+import { ContentFiltersPage } from './pages/ContentFilters';
 import { Layout } from './components/Layout';
 import { Loading } from './components/ui';
 import { useStore } from './store/useStore';
@@ -87,6 +88,7 @@ function App() {
           <Route path="profiles" element={<ProfilesPage />} />
           <Route path="editor" element={<EditorPage />} />
           <Route path="providers" element={<ProvidersPage />} />
+          <Route path="filters" element={<ContentFiltersPage />} />
           <Route path="logs" element={<LogsPage />} />
           <Route path="changelog" element={<ChangelogPage />} />
           <Route path="faq" element={<FAQPage />} />

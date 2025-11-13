@@ -1,3 +1,31 @@
+// Content Filter types
+export interface ContentFilter {
+  id: string;
+  pattern: string;
+  replacement?: string | null; // null = block, string = replace
+  caseSensitive: boolean;
+  enabled: boolean;
+  group?: string | null; // null = "General" group
+  createdAt: string;
+}
+
+export interface FilterGroup {
+  id: string;
+  name: string;
+  createdAt: string;
+}
+
+export interface LastRequestData {
+  placeholders: LogPlaceholders;
+  timestamp: string;
+}
+
+export interface AISuggestion {
+  type: 'block' | 'replace';
+  pattern: string;
+  replacement?: string;
+}
+
 // User types
 export interface User {
   _id: string;
@@ -6,6 +34,11 @@ export interface User {
   activeProfileId?: string;
   profileOrder?: string[];
   isLoggingEnabled: boolean;
+  globalProviderType?: ProviderType;
+  globalProviders?: ProviderConfig;
+  contentFilters?: ContentFilter[];
+  filterGroups?: FilterGroup[];
+  lastRequestData?: LastRequestData;
   createdAt: string;
 }
 
@@ -52,6 +85,7 @@ export interface Profile {
   name: string;
   tabs: Tab[];
   activeTabId?: string;
+  useGlobalProvider?: boolean;
   providerType: ProviderType;
   providers: ProviderConfig;
   proxyEndpoint?: string;

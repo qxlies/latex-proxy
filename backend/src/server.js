@@ -20,6 +20,7 @@ const authMiddleware = require('./middleware/auth')
 const profileRouter = require('./routes/profiles')
 const userRouter = require('./routes/user')
 const logRouter = require('./routes/logs')
+const editorAssistantRouter = require('./routes/editor-assistant')
 
 const PORT = process.env.PORT || 3000
 const FREE_ENDPOINT = process.env.ENDPOINT
@@ -52,6 +53,7 @@ app.use(express.json({ limit: '1mb' }))
 app.use('/api/profiles', authMiddleware, profileRouter)
 app.use('/api/users', authMiddleware, userRouter)
 app.use('/api/logs', authMiddleware, logRouter)
+app.use('/api/users', editorAssistantRouter)
 
 app.post('/api/auth/register', async (req, res) => {
   const { login, password } = req.body
@@ -203,10 +205,21 @@ app.post('/v1/chat/completions', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'Active profile not found' });
     }
 
+    // Determine which provider settings to use
+    let providerType, providers;
+    
+    if (activeProfile.useGlobalProvider) {
+      // Use global user settings
+      providerType = user.globalProviderType || 'openrouter';
+      providers = user.globalProviders;
+    } else {
+      // Use profile-specific settings
+      providerType = activeProfile.providerType || 'openrouter';
+      providers = activeProfile.providers;
+    }
+
     // Use new provider system or fall back to legacy fields
     let proxyEndpoint, proxyApiKey, model;
-    const providerType = activeProfile.providerType || 'openrouter';
-    const providers = activeProfile.providers;
 
     if (providers && providers[providerType]) {
       // New provider system
@@ -310,6 +323,35 @@ app.post('/v1/chat/completions', authMiddleware, async (req, res) => {
     const incomingSystem = body.messages.find(m => m.role === 'system');
     
     const placeholders = incomingSystem ? extractPlaceholders(incomingSystem.content) : {};
+
+    // Save last request data if logging is enabled
+    if (user.isLoggingEnabled) {
+      user.lastRequestData = {
+        placeholders,
+        timestamp: new Date()
+      };
+      await user.save();
+    }
+
+    // Apply content filters to placeholders
+    if (user.contentFilters && user.contentFilters.length > 0) {
+      const enabledFilters = user.contentFilters.filter(f => f.enabled);
+      
+      for (const key in placeholders) {
+        let content = placeholders[key];
+        
+        for (const filter of enabledFilters) {
+          try {
+            const regex = new RegExp(filter.pattern, filter.caseSensitive ? 'g' : 'gi');
+            content = content.replace(regex, '');
+          } catch (e) {
+            console.error(`Invalid regex pattern in filter ${filter.id}:`, e);
+          }
+        }
+        
+        placeholders[key] = content;
+      }
+    }
 
     const finalMessages = [];
     activeProfile.tabs.forEach(tab => {

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Icon } from '@iconify/react';
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { Card, Button, Input } from '../components/ui';
+import { EditorAssistant } from '../components/EditorAssistant';
 import { useStore } from '../store/useStore';
 import { api } from '../lib/api';
 import { tokenCount, getErrorMessage, debounce } from '../lib/utils';
@@ -192,6 +193,61 @@ export function EditorPage() {
     await api.moveTabs(profile._id, items);
   };
 
+  const handleApplySuggestion = async (tabId: string, newContent: string) => {
+    if (!profile) return;
+    try {
+      await api.updateTab(profile._id, tabId, { content: newContent });
+      updateTab(profile._id, tabId, { content: newContent });
+      
+      // If this is the selected tab, update the local state
+      if (selectedTabId === tabId) {
+        setTabContent(newContent);
+      }
+    } catch (err) {
+      throw new Error(getErrorMessage(err));
+    }
+  };
+
+  const handleCreateTabFromAI = async (
+    title: string,
+    role: 'system' | 'user',
+    content: string,
+    position: number
+  ) => {
+    if (!profile) return;
+    try {
+      const newTab: Partial<Tab> = {
+        role,
+        title,
+        content,
+        enabled: true,
+      };
+      const { tab } = await api.createTab(profile._id, newTab);
+
+      // Insert at specified position
+      const existing = [...profile.tabs];
+      const chatIdx = existing.findIndex((t) => t.content === '{chat_history}');
+      
+      let chatTab: Tab | undefined;
+      if (chatIdx !== -1) {
+        chatTab = existing.splice(chatIdx, 1)[0];
+      }
+
+      // Insert at position
+      existing.splice(position, 0, tab as Tab);
+      
+      const newOrder: Tab[] = [...existing];
+      if (chatTab) newOrder.push(chatTab);
+
+      reorderTabs(profile._id, newOrder);
+      await api.moveTabs(profile._id, newOrder);
+      
+      setSelectedTabId(tab.id);
+    } catch (err) {
+      throw new Error(getErrorMessage(err));
+    }
+  };
+
   if (!profile) {
     return (
       <div className="max-w-5xl mx-auto">
@@ -263,15 +319,15 @@ export function EditorPage() {
 
       {/* Editor Grid with Resizer */}
       <div className="flex flex-col gap-0">
-        <div ref={panesRef} className="grid gap-6 items-stretch lg:grid-cols-[360px_1fr]" style={{ height: paneHeight }}>
+        <div ref={panesRef} className="grid gap-6 items-stretch lg:grid-cols-[360px_1fr]" style={{ height: window.innerWidth >= 1024 ? paneHeight : 'auto' }}>
           {/* Tabs List */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.1 }}
-            className="overflow-hidden"
+            className="lg:overflow-hidden"
           >
-            <Card className="h-full flex flex-col overflow-hidden">
+            <Card className="lg:h-full flex flex-col lg:overflow-hidden">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold">Tabs</h3>
               <Button variant="success" size="sm" onClick={handleAddTab}>
@@ -399,10 +455,9 @@ export function EditorPage() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2 }}
-            className="lg:flex-1"
           >
           {selectedTab ? (
-            <Card className="h-full flex flex-col overflow-hidden">
+            <Card className="lg:h-full flex flex-col lg:overflow-hidden">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold">Edit Tab</h3>
                 {isProtectedTab && (
@@ -548,6 +603,14 @@ export function EditorPage() {
           </div>
         </div>
       </div>
+
+      {/* AI Assistant */}
+      <EditorAssistant
+        profileId={profile._id}
+        tabs={profile.tabs}
+        onApplySuggestion={handleApplySuggestion}
+        onCreateTab={handleCreateTabFromAI}
+      />
     </div>
   );
 }

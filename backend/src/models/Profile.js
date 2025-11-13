@@ -19,6 +19,10 @@ const ProfileSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  useGlobalProvider: {
+    type: Boolean,
+    default: true,
+  },
   providerType: {
     type: String,
     default: 'openrouter',

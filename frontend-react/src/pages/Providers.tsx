@@ -40,13 +40,8 @@ const providers = [
 ];
 
 export function ProvidersPage() {
-  const { updateProfile } = useStore();
-  const profile = useStore((state) => {
-    const { profiles, selectedProfileId } = state;
-    if (!selectedProfileId) return null;
-    return profiles.find((p) => p._id === selectedProfileId) || null;
-  });
-
+  const { user, setUser } = useStore();
+  
   const [selectedProvider, setSelectedProvider] = useState<ProviderType>('gorouter');
   const [settings, setSettings] = useState<any>({});
   const [openrouterModels, setOpenrouterModels] = useState<any[]>([]);
@@ -56,18 +51,18 @@ export function ProvidersPage() {
   const modelsFetched = useRef(false);
 
   useEffect(() => {
-    if (profile && !initialized.current) {
-      setSelectedProvider(profile.providerType);
-      setSettings(profile.providers || {});
+    if (user && !initialized.current) {
+      setSelectedProvider(user.globalProviderType || 'gorouter');
+      setSettings(user.globalProviders || {});
       initialized.current = true;
     }
-  }, [profile?._id]);
+  }, [user?._id]);
 
   useEffect(() => {
-    if (profile && initialized.current) {
-      setSelectedProvider(profile.providerType);
+    if (user && initialized.current) {
+      setSelectedProvider(user.globalProviderType || 'gorouter');
     }
-  }, [profile?.providerType]);
+  }, [user?.globalProviderType]);
 
   useEffect(() => {
     modelsFetched.current = false;
@@ -108,10 +103,10 @@ export function ProvidersPage() {
   };
 
   const saveSettings = debounce(async (updates: any) => {
-    if (!profile) return;
+    if (!user) return;
     try {
-      await api.updateProfile(profile._id, updates);
-      updateProfile(profile._id, updates);
+      const result = await api.updateGlobalProvider(updates);
+      setUser({ ...user, ...result });
     } catch (err) {
       console.error('Failed to save settings:', err);
     }
@@ -119,30 +114,12 @@ export function ProvidersPage() {
 
   const handleProviderChange = async (type: ProviderType) => {
     setSelectedProvider(type);
-    if (!profile) return;
+    if (!user) return;
 
-    const updates: any = { providerType: type };
+    const updates: any = { globalProviderType: type };
 
-    if (type === 'gorouter') {
-      updates.proxyEndpoint = 'https://gorouter.bobots.me/v1';
-      updates.proxyApiKey = settings.gorouter?.apiKey || '';
-      updates.model = settings.gorouter?.model || '';
-    } else if (type === 'openrouter') {
-      updates.proxyEndpoint = 'https://openrouter.ai/api/v1';
-      updates.proxyApiKey = settings.openrouter?.apiKey || '';
-      updates.model = settings.openrouter?.model || '';
-    } else if (type === 'aistudio') {
-      updates.proxyEndpoint = 'https://generativelanguage.googleapis.com/v1beta/openai';
-      updates.proxyApiKey = settings.aistudio?.apiKey || '';
-      updates.model = settings.aistudio?.model || 'gemini-2.5-pro';
-    } else {
-      updates.proxyEndpoint = settings.custom?.endpoint || '';
-      updates.proxyApiKey = settings.custom?.apiKey || '';
-      updates.model = settings.custom?.model || '';
-    }
-
-    await api.updateProfile(profile._id, updates);
-    updateProfile(profile._id, updates);
+    await api.updateGlobalProvider(updates);
+    setUser({ ...user, globalProviderType: type });
   };
 
   const handleSettingChange = (provider: string, field: string, value: any) => {
@@ -156,14 +133,8 @@ export function ProvidersPage() {
     setSettings(newSettings);
 
     const updates: any = {
-      providers: newSettings,
+      globalProviders: newSettings,
     };
-
-    if (provider === selectedProvider) {
-      if (field === 'apiKey') updates.proxyApiKey = value;
-      if (field === 'model') updates.model = value;
-      if (field === 'endpoint') updates.proxyEndpoint = value;
-    }
 
     saveSettings(updates);
   };
@@ -174,13 +145,13 @@ export function ProvidersPage() {
       m.name.toLowerCase().includes(modelSearch.toLowerCase())
   );
 
-  if (!profile) {
+  if (!user) {
     return (
       <div className="max-w-5xl mx-auto">
         <Card className="text-center py-12">
           <Icon icon="lucide:settings-2" className="w-16 h-16 mx-auto mb-4 text-white/40" />
-          <h2 className="text-xl font-semibold mb-2">No Profile Selected</h2>
-          <p className="text-white/60">Please select a profile first</p>
+          <h2 className="text-xl font-semibold mb-2">Not Logged In</h2>
+          <p className="text-white/60">Please log in first</p>
         </Card>
       </div>
     );
@@ -203,9 +174,9 @@ export function ProvidersPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <h1 className="text-3xl font-bold mb-2">API Providers</h1>
+        <h1 className="text-3xl font-bold mb-2">Global API Providers</h1>
         <p className="text-white/60">
-          Configure your AI model provider for profile: <span className="text-white font-medium">{profile.name}</span>
+          Configure your default AI model provider. These settings will be used by all profiles unless overridden.
         </p>
       </motion.div>
 
@@ -465,26 +436,6 @@ export function ProvidersPage() {
               />
             </div>
           )}
-
-          {/* Extra Params */}
-          <details className="mt-6 bg-white/5 border border-white/14 rounded-xl p-4">
-            <summary className="cursor-pointer font-medium text-sm flex items-center gap-2">
-              <Icon icon="lucide:code" className="w-4 h-4" />
-              Extra Parameters (JSON)
-            </summary>
-            <div className="mt-4">
-              <textarea
-                value={profile.extraParams || '{}'}
-                onChange={(e) => {
-                  const updates = { extraParams: e.target.value };
-                  updateProfile(profile._id, updates);
-                  saveSettings(updates);
-                }}
-                placeholder='{ "temperature": 0.7 }'
-                className="input min-h-[120px] font-mono text-xs"
-              />
-            </div>
-          </details>
         </Card>
       </motion.div>
     </div>
