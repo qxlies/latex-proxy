@@ -46,11 +46,15 @@ export function RequestParamsEditor({ value, onChange }: RequestParamsEditorProp
   const [newParamKey, setNewParamKey] = useState('');
   const [newParamValue, setNewParamValue] = useState('');
   const [showAddParam, setShowAddParam] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Update params when value prop changes
+  // Update params when value prop changes (only on first load)
   useEffect(() => {
-    setParams(initializeParams(value));
-  }, [value]);
+    if (!isInitialized && value && Object.keys(value).length > 0) {
+      setParams(initializeParams(value));
+      setIsInitialized(true);
+    }
+  }, [value, isInitialized]);
 
   const updateParams = (newParams: ParamConfig[]) => {
     setParams(newParams);
