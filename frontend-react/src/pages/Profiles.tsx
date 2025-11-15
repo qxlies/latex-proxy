@@ -293,7 +293,7 @@ All subsequent blocks constitute this mandatory guide.` },
                 <Draggable
                   key={profile._id}
                   draggableId={profile._id}
-                  index={profiles.length - 1 - index}
+                  index={index}
                 >
                   {(provided, snapshot) => (
                     <div

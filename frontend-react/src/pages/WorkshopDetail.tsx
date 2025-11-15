@@ -7,6 +7,7 @@ import { Button, Card, Modal, Input, ConfirmModal } from '../components/ui';
 import type { WorkshopDetailResponse, WorkshopProfile, WorkshopVersion } from '../types';
 import { useStore } from '../store/useStore';
 import { notify } from '../store/notifications';
+import { tokenCount } from '../lib/utils';
 
 export function WorkshopDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -46,10 +47,7 @@ export function WorkshopDetailPage() {
   const profile = data?.profile as WorkshopProfile | undefined;
   const versions = data?.versions || [];
 
-  // const latestVersion = useMemo(() => {
-  //   if (!versions.length) return null;
-  //   return versions[0];
-  // }, [versions]);
+  const latestVersion = versions[0] || null;
 
   const openImport = (mode: 'copy' | 'link') => {
     setImportMode(mode);
@@ -216,6 +214,86 @@ export function WorkshopDetailPage() {
                 </span>
               ))}
             </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Tabs (latest) */}
+      {latestVersion && (
+        <Card className="p-5">
+          <div className="flex items-center justify-between mb-3">
+            <div className="font-semibold">
+              Tabs (latest v{latestVersion.versionNumber})
+            </div>
+            <div className="text-xs text-white/50">
+              {latestVersion.tabs.length} tabs
+            </div>
+          </div>
+          <div className="space-y-2 max-h-[60vh] overflow-y-auto custom-scrollbar pr-1">
+            {[...latestVersion.tabs]
+              .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
+              .map((t, idx) => (
+                <div
+                  key={idx}
+                  className={`rounded-xl border p-3 ${
+                    t.enabled
+                      ? 'bg-white/5 border-white/14'
+                      : 'bg-white/3 border-white/20'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                        !t.enabled
+                          ? 'bg-white/8 border border-white/20 text-white/50'
+                          : t.content.includes('{lorebooks}')
+                          ? 'bg-pink-500/25 border border-pink-500/50 text-pink-400'
+                          : t.role === 'system'
+                          ? 'bg-purple-500/25 border border-purple-500/50 text-purple-400'
+                          : t.role === 'assistant'
+                          ? 'bg-blue-500/25 border border-blue-500/50 text-blue-400'
+                          : 'bg-blue-500/25 border border-blue-500/50 text-blue-400'
+                      }`}
+                    >
+                      {t.content.includes('{lorebooks}') ? (
+                        'L'
+                      ) : t.role === 'system' ? (
+                        'S'
+                      ) : t.role === 'assistant' ? (
+                        <Icon icon="lucide:bot" className="w-3.5 h-3.5" />
+                      ) : (
+                        'U'
+                      )}
+                    </span>
+                    <span
+                      className={`flex-1 font-medium text-sm truncate ${
+                        !t.enabled ? 'text-white/60' : ''
+                      }`}
+                    >
+                      {t.title}
+                    </span>
+                    <span
+                      className={`text-xs flex-shrink-0 ${
+                        !t.enabled ? 'text-white/40' : 'text-white/60'
+                      }`}
+                      title="Token count"
+                    >
+                      {tokenCount(t.content)}
+                    </span>
+                  </div>
+
+                  <details className="mt-2">
+                    <summary className="text-xs text-accent-1 cursor-pointer hover:text-accent-2 transition-colors">
+                      View content
+                    </summary>
+                    <div className="mt-2 p-3 bg-black/30 rounded-lg border border-white/10">
+                      <pre className="text-xs whitespace-pre-wrap font-mono">
+{t.content}
+                      </pre>
+                    </div>
+                  </details>
+                </div>
+              ))}
           </div>
         </Card>
       )}
