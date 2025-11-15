@@ -345,7 +345,7 @@ router.post('/:id/unhide', auth, async (req, res) => {
 
 /**
  * DELETE /api/workshop/:id (owner or admin)
- * Soft-delete by marking as 'deleted'
+ * Soft-delete by marking as 'deleted' and clear workshopPublishedId from source profile
  */
 router.delete('/:id', auth, async (req, res) => {
   try {
@@ -362,6 +362,17 @@ router.delete('/:id', auth, async (req, res) => {
 
     wp.visibility = 'deleted';
     await wp.save();
+
+    // Clear workshopPublishedId from any profiles that reference this publication
+    try {
+      await Profile.updateMany(
+        { workshopPublishedId: wp._id },
+        { $unset: { workshopPublishedId: '', workshopIncludeAllTabs: '' } }
+      );
+    } catch (e) {
+      console.error('Failed to clear workshopPublishedId references:', e);
+    }
+
     res.status(204).send();
   } catch (err) {
     console.error('Workshop delete error:', err);
