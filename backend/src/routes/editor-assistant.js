@@ -244,7 +244,7 @@ ${context}
 - ONLY suggest changes when you are 100% confident they will improve the prompt
 - If unsure, just answer the question without suggesting changes
 - Always explain your reasoning clearly
-- Consider the tab's role (system/user) and purpose
+- Consider the tab's role (system/user/assistant) and purpose
 - Maintain consistency across tabs
 
 **RESPONSE FORMAT:**
@@ -362,7 +362,7 @@ Tab content here
       suggestions.push({
         type: 'create',
         title,
-        role: role === 'user' ? 'user' : 'system',
+        role: role === 'assistant' ? 'assistant' : role === 'user' ? 'user' : 'system',
         position: isNaN(position) ? tabs.length : position,
         newContent: content,
         explanation,

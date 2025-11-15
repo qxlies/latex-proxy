@@ -16,7 +16,7 @@ export function EditorPage() {
   const [selectedTabId, setSelectedTabId] = useState<string | null>(null);
   const [tabTitle, setTabTitle] = useState('');
   const [tabContent, setTabContent] = useState('');
-  const [tabRole, setTabRole] = useState<'system' | 'user'>('system');
+  const [tabRole, setTabRole] = useState<Tab['role']>('system');
   const [mergeRoles, setMergeRoles] = useState(true);
   const [roleOpen, setRoleOpen] = useState(false);
   const roleRef = useRef<HTMLDivElement | null>(null);
@@ -106,7 +106,7 @@ export function EditorPage() {
     saveTab({ content: value });
   };
 
-  const handleRoleChange = (value: 'system' | 'user') => {
+  const handleRoleChange = (value: Tab['role']) => {
     setTabRole(value);
     saveTab({ role: value });
   };
@@ -209,7 +209,7 @@ export function EditorPage() {
 
   const handleCreateTabFromAI = async (
     title: string,
-    role: 'system' | 'user',
+    role: Tab['role'],
     content: string,
     position: number
   ) => {
@@ -380,16 +380,22 @@ export function EditorPage() {
                                       ? 'bg-pink-500/25 border border-pink-500/50 text-pink-400'
                                       : tab.role === 'system'
                                       ? 'bg-purple-500/25 border border-purple-500/50 text-purple-400'
+                                      : tab.role === 'assistant'
+                                      ? 'bg-blue-500/25 border border-blue-500/50 text-blue-400'
                                       : 'bg-blue-500/25 border border-blue-500/50 text-blue-400'
                                   }`}
                                 >
-                                  {tab.content === '{chat_history}'
-                                    ? 'C'
-                                    : tab.content.includes('{lorebooks}')
-                                    ? 'L'
-                                    : tab.role === 'system'
-                                    ? 'S'
-                                    : 'U'}
+                                  {tab.content === '{chat_history}' ? (
+                                    'C'
+                                  ) : tab.content.includes('{lorebooks}') ? (
+                                    'L'
+                                  ) : tab.role === 'system' ? (
+                                    'S'
+                                  ) : tab.role === 'assistant' ? (
+                                    <Icon icon="lucide:bot" className="w-3.5 h-3.5" />
+                                  ) : (
+                                    'U'
+                                  )}
                                 </span>
 
                                 {/* Title */}
@@ -483,7 +489,7 @@ export function EditorPage() {
                       </button>
                       {roleOpen && !isProtectedTab && (
                         <div className="absolute z-20 mt-2 w-full bg-bg-2/95 backdrop-blur-sm border border-white/14 rounded-xl shadow-2xl overflow-hidden">
-                          {(['system','user'] as const).map((role) => (
+                          {(['system','user','assistant'] as const).map((role) => (
                             <button
                               key={role}
                               type="button"
@@ -496,8 +502,12 @@ export function EditorPage() {
                             >
                               <div className="flex items-center gap-2">
                                 <span className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-bold
-                                  ${role === 'system' ? 'bg-purple-500/25 border border-purple-500/50 text-purple-400' : 'bg-blue-500/25 border border-blue-500/50 text-blue-400'}`}>
-                                  {role === 'system' ? 'S' : 'U'}
+                                  ${
+                                    role === 'system'
+                                      ? 'bg-purple-500/25 border border-purple-500/50 text-purple-400'
+                                      : 'bg-blue-500/25 border border-blue-500/50 text-blue-400'
+                                  }`}>
+                                  {role === 'system' ? 'S' : role === 'assistant' ? <Icon icon="lucide:bot" className="w-3.5 h-3.5" /> : 'U'}
                                 </span>
                                 <span className="capitalize">{role}</span>
                               </div>

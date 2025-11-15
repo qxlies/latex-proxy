@@ -18,7 +18,7 @@ interface TabSuggestion {
   tabTitle?: string;
   type: 'replace' | 'modify' | 'create';
   title?: string;
-  role?: 'system' | 'user';
+  role?: 'system' | 'user' | 'assistant';
   position?: number;
   originalContent?: string;
   newContent: string;
@@ -40,7 +40,7 @@ interface EditorAssistantProps {
   profileId: string;
   tabs: Tab[];
   onApplySuggestion: (tabId: string, newContent: string) => Promise<void>;
-  onCreateTab: (title: string, role: 'system' | 'user', content: string, position: number) => Promise<void>;
+  onCreateTab: (title: string, role: Tab['role'], content: string, position: number) => Promise<void>;
 }
 
 export function EditorAssistant({ profileId, tabs, onApplySuggestion, onCreateTab }: EditorAssistantProps) {
@@ -472,7 +472,7 @@ export function EditorAssistant({ profileId, tabs, onApplySuggestion, onCreateTa
                   ? 'bg-purple-500/30 text-purple-300'
                   : 'bg-blue-500/30 text-blue-300'
               }`}>
-                {tab.role === 'system' ? 'S' : 'U'}
+                {tab.role === 'system' ? 'S' : tab.role === 'assistant' ? <Icon icon="lucide:bot" className="w-3 h-3" /> : 'U'}
               </span>
               {tab.title}
             </span>
@@ -823,7 +823,7 @@ export function EditorAssistant({ profileId, tabs, onApplySuggestion, onCreateTa
                           ? 'bg-purple-500/25 text-purple-400'
                           : 'bg-blue-500/25 text-blue-400'
                       }`}>
-                        {tab.role === 'system' ? 'S' : 'U'}
+                        {tab.role === 'system' ? 'S' : tab.role === 'assistant' ? <Icon icon="lucide:bot" className="w-3.5 h-3.5" /> : 'U'}
                       </span>
                       <span className="text-sm">{tab.title}</span>
                     </button>

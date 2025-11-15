@@ -70,7 +70,7 @@ All subsequent blocks constitute this mandatory guide.` },
           { id: uid(), role: 'system', title: 'example_dialogs', enabled: true, content: '<example_dialogs>{example_dialogs}</example_dialogs>' },
           { id: uid(), role: 'system', title: 'lorebooks', enabled: true, content: '{lorebooks}' },
           { id: uid(), role: 'system', title: 'final', enabled: true, content: 'FINAL COMMAND: This is the end of the prompt. Re-read and apply ALL preceding rules and instructions without fail. Your performance depends on your total compliance with every directive provided by the user.' },
-          { id: uid(), role: 'system', title: 'chat history', enabled: true, content: '{chat_history}', isPinned: true },
+          { id: uid(), role: 'system', title: 'chat history', enabled: true, content: '{chat_history}'},
         ],
       });
 

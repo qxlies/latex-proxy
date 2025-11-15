@@ -46,7 +46,7 @@ export interface User {
 // Tab types
 export interface Tab {
   id: string;
-  role: 'system' | 'user';
+  role: 'system' | 'user' | 'assistant';
   title: string;
   content: string;
   enabled: boolean;
