@@ -484,7 +484,11 @@ All subsequent blocks constitute this mandatory guide.` },
                                           e.stopPropagation();
                                           try {
                                             const { profile: p } = await api.syncLinkedProfile(profile._id);
-                                            updateProfile(profile._id, p as any);
+                                            updateProfile(profile._id, {
+                                              tabs: p.tabs,
+                                              workshopLinkedVersion: p.workshopLinkedVersion,
+                                              workshopIncludeAllTabs: p.workshopIncludeAllTabs,
+                                            } as any);
                                             notify('Synced', 'success');
                                           } catch (err) {
                                             notify(getErrorMessage(err as any), 'error');

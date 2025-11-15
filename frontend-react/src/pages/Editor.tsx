@@ -475,7 +475,11 @@ export function EditorPage() {
                 onClick={async () => {
                   try {
                     const { profile: p } = await api.syncLinkedProfile(profile._id);
-                    updateProfile(profile._id, p as any);
+                    updateProfile(profile._id, {
+                      tabs: p.tabs,
+                      workshopLinkedVersion: p.workshopLinkedVersion,
+                      workshopIncludeAllTabs: p.workshopIncludeAllTabs,
+                    } as any);
                     notify('Linked profile synced', 'success');
                   } catch (err) {
                     notify(getErrorMessage(err as any), 'error');

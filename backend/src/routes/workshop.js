@@ -426,6 +426,7 @@ router.post('/:id/import', auth, async (req, res) => {
  * POST /api/workshop/sync-linked/:profileId
  * If profile is linked to a Workshop profile and auto-update is on,
  * update its tabs from the latest WorkshopVersion snapshot.
+ * Preserves special service tabs like {chat_history} and {lorebooks} at their original positions.
  */
 router.post('/sync-linked/:profileId', auth, async (req, res) => {
   try {
@@ -435,10 +436,6 @@ router.post('/sync-linked/:profileId', auth, async (req, res) => {
 
     if (!profile.workshopLinkedId) {
       return res.status(400).json({ msg: 'Profile is not linked to a Workshop publication' });
-    }
-
-    if (profile.workshopAutoUpdate === false) {
-      return res.status(200).json({ profile });
     }
 
     const wp = await WorkshopProfile.findById(profile.workshopLinkedId);
@@ -452,18 +449,20 @@ router.post('/sync-linked/:profileId', auth, async (req, res) => {
     }
 
     if (profile.workshopLinkedVersion && last.versionNumber <= profile.workshopLinkedVersion) {
-      // Already up to date
       return res.status(200).json({ profile });
     }
 
-    // Preserve any special {chat_history} tabs and their target positions if possible
-    const specialTabs = Array.isArray(profile.tabs)
-      ? profile.tabs
-          .map((t, idx) => ({ ...t, __idx: idx }))
-          .filter(t => t.content === '{chat_history}')
-      : [];
+    const currentTabs = Array.isArray(profile.tabs) ? profile.tabs : [];
+    const specialTabs = currentTabs
+      .map((t, idx) => {
+        const isSpecial =
+          t.content === '{chat_history}' ||
+          t.content === '{lorebooks}' ||
+          t.content.includes('{lorebooks}');
+        return isSpecial ? { ...t, __originalIndex: idx } : null;
+      })
+      .filter(Boolean);
 
-    // Build new tabs from snapshot, preserving order by index
     const orderedSnapshots = [...last.tabs].sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
     const newTabs = orderedSnapshots.map(s => ({
       id: uuidv4(),
@@ -474,16 +473,28 @@ router.post('/sync-linked/:profileId', auth, async (req, res) => {
       isPinned: false,
     }));
 
-    // Re-insert special tabs near their previous indices
     for (const st of specialTabs) {
-      const insertAt = Math.min(Math.max(st.__idx, 0), newTabs.length);
+      const insertAt = Math.min(st.__originalIndex, newTabs.length);
       newTabs.splice(insertAt, 0, {
         id: st.id || uuidv4(),
         role: st.role || 'user',
-        title: st.title || 'Chat History',
-        content: '{chat_history}',
+        title: st.title || (st.content === '{chat_history}' ? 'Chat History' : 'Lorebooks'),
+        content: st.content,
         enabled: typeof st.enabled === 'boolean' ? st.enabled : true,
         isPinned: !!st.isPinned,
+      });
+    }
+
+    // Ensure {chat_history} exists (add at end if missing)
+    const hasChatHistory = newTabs.some(t => t.content === '{chat_history}');
+    if (!hasChatHistory) {
+      newTabs.push({
+        id: uuidv4(),
+        role: 'user',
+        title: 'Chat History',
+        content: '{chat_history}',
+        enabled: true,
+        isPinned: false,
       });
     }
 
