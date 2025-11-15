@@ -8,19 +8,22 @@ const { v4: uuidv4 } = require('uuid');
 
 /**
  * Helper: build immutable tab snapshot from a Profile
- * - Excludes special service tabs like {chat_history}
- * - includeAllTabs: if false, keep only enabled tabs
+ * - Includes special service tabs like {chat_history} and {lorebooks}
+ * - includeAllTabs=false: keep enabled tabs PLUS special tabs
  * - Preserves original order via index
  */
 function buildTabSnapshot(profile, includeAllTabs = true) {
   const tabs = Array.isArray(profile.tabs) ? profile.tabs : [];
   const filtered = tabs
     .map((t, idx) => ({ ...t.toObject?.() ?? t, __idx: idx }))
-    .filter(
-      (t) =>
-        t.content !== '{chat_history}' &&
-        (includeAllTabs ? true : !!t.enabled)
-    )
+    .filter((t) => {
+      const content = t.content || '';
+      const isSpecial =
+        content === '{chat_history}' ||
+        (typeof content === 'string' && content.includes('{lorebooks}'));
+      // If includeAllTabs=false we still keep special tabs
+      return includeAllTabs ? true : (!!t.enabled || isSpecial);
+    })
     .map((t) => ({
       role: t.role,
       title: t.title,
