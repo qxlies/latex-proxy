@@ -10,6 +10,11 @@ import type {
   FilterGroup,
   LastRequestData,
   AISuggestion,
+  WorkshopListResponse,
+  WorkshopDetailResponse,
+  WorkshopImportResponse,
+  WorkshopProfile as WorkshopProfileType,
+  WorkshopVersion as WorkshopVersionType,
 } from '../types';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -292,6 +297,88 @@ class ApiClient {
     }>('/api/users/me/analyze-prompt', {
       method: 'POST',
       body: JSON.stringify({ question }),
+    });
+  }
+  // ===== Workshop (Catalog) =====
+
+  async getWorkshopList(
+    q: string = '',
+    page: number = 1,
+    limit: number = 20,
+    visibility?: 'public' | 'hidden' | 'deleted'
+  ): Promise<WorkshopListResponse> {
+    const params = new URLSearchParams();
+    if (q) params.set('q', q);
+    if (page) params.set('page', String(page));
+    if (limit) params.set('limit', String(limit));
+    if (visibility) params.set('visibility', visibility);
+    const qs = params.toString();
+    return this.request<WorkshopListResponse>(`/api/workshop${qs ? `?${qs}` : ''}`);
+  }
+
+  async getWorkshopDetail(
+    id: string,
+    options?: { includeAllVersions?: boolean; versionsLimit?: number }
+  ): Promise<WorkshopDetailResponse> {
+    const params = new URLSearchParams();
+    if (options?.includeAllVersions) params.set('includeAllVersions', 'true');
+    if (options?.versionsLimit) params.set('versionsLimit', String(options.versionsLimit));
+    const qs = params.toString();
+    return this.request<WorkshopDetailResponse>(`/api/workshop/${id}${qs ? `?${qs}` : ''}`);
+  }
+
+  async publishWorkshop(payload: {
+    profileId: string;
+    title: string;
+    description?: string;
+    preferredModels?: string[];
+    preferredProviderType?: string; // advisory
+    includeAllTabs?: boolean;       // user can choose all vs enabled only
+  }): Promise<{ profile: WorkshopProfileType; version: WorkshopVersionType }> {
+    return this.request<{ profile: WorkshopProfileType; version: WorkshopVersionType }>(
+      `/api/workshop/publish`,
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }
+    );
+  }
+
+  async updateWorkshop(
+    id: string,
+    payload: {
+      profileId: string;
+      changelog: string;
+      title?: string;
+      description?: string;
+      preferredModels?: string[];
+      preferredProviderType?: string;
+      includeAllTabs?: boolean;
+    }
+  ): Promise<{ profile: WorkshopProfileType; version: WorkshopVersionType }> {
+    return this.request<{ profile: WorkshopProfileType; version: WorkshopVersionType }>(
+      `/api/workshop/${id}/update`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      }
+    );
+  }
+
+  async importWorkshop(
+    id: string,
+    mode: 'link' | 'copy' = 'copy'
+  ): Promise<WorkshopImportResponse> {
+    return this.request<WorkshopImportResponse>(`/api/workshop/${id}/import`, {
+      method: 'POST',
+      body: JSON.stringify({ mode }),
+    });
+  }
+
+  // Sync linked profile with latest Workshop version
+  async syncLinkedProfile(profileId: string): Promise<ProfileResponse> {
+    return this.request<ProfileResponse>(`/api/workshop/sync-linked/${profileId}`, {
+      method: 'POST',
     });
   }
 }

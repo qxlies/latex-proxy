@@ -1,12 +1,14 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Icon } from '@iconify/react';
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
-import { Card, Button, Input } from '../components/ui';
+import { Card, Button, Input, ModalDisclosure, ToggleSwitch, PopoverSelect, ConfirmModal } from '../components/ui';
+import { Link } from 'react-router-dom';
 import { EditorAssistant } from '../components/EditorAssistant';
 import { useStore } from '../store/useStore';
 import { api } from '../lib/api';
 import { tokenCount, getErrorMessage, debounce } from '../lib/utils';
+import { notify } from '../store/notifications';
 import type { Tab } from '../types';
 
 export function EditorPage() {
@@ -25,6 +27,29 @@ export function EditorPage() {
   const [paneHeight, setPaneHeight] = useState<number>(600);
   const panesRef = useRef<HTMLDivElement | null>(null);
   const isVResizingRef = useRef(false);
+
+  // Workshop publish/update modals state
+  const [publishOpen, setPublishOpen] = useState(false);
+  const [updateOpen, setUpdateOpen] = useState(false);
+
+  // Confirm delete tab modal
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteTabId, setDeleteTabId] = useState<string | null>(null);
+
+  // Publish fields
+  const [pubTitle, setPubTitle] = useState(profile?.name || '');
+  const [pubDescription, setPubDescription] = useState('');
+  const [pubPreferredModels, setPubPreferredModels] = useState('');
+  const [pubProviderType, setPubProviderType] = useState<string>('');
+  const [pubIncludeAllTabs, setPubIncludeAllTabs] = useState(true);
+
+  // Update fields
+  const [updChangelog, setUpdChangelog] = useState('');
+  const [updTitle, setUpdTitle] = useState<string>('');
+  const [updDescription, setUpdDescription] = useState<string>('');
+  const [updPreferredModels, setUpdPreferredModels] = useState<string>('');
+  const [updProviderType, setUpdProviderType] = useState<string>('');
+  const [updIncludeAllTabs, setUpdIncludeAllTabs] = useState<boolean>(true);
 
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
@@ -68,6 +93,10 @@ export function EditorPage() {
   const selectedTab = profile?.tabs.find((t) => t.id === selectedTabId);
   const isChatHistory = selectedTab?.content === '{chat_history}';
   const isProtectedTab = isChatHistory;
+  const totalTokens = useMemo(
+    () => (profile ? profile.tabs.reduce((sum, t) => sum + tokenCount(t.content), 0) : 0),
+    [profile?.tabs]
+  );
 
   useEffect(() => {
     if (profile) {
@@ -77,6 +106,11 @@ export function EditorPage() {
       }
     }
   }, [profile, selectedTabId]);
+
+  useEffect(() => {
+    setPubTitle(profile?.name || '');
+    setUpdIncludeAllTabs(profile?.workshopIncludeAllTabs ?? true);
+  }, [profile?._id]);
 
   useEffect(() => {
     if (selectedTab) {
@@ -147,26 +181,38 @@ export function EditorPage() {
       reorderTabs(profile._id, existing);
       await api.moveTabs(profile._id, existing);
     } catch (err) {
-      alert(getErrorMessage(err));
+      notify(getErrorMessage(err), 'error');
     }
   };
 
-  const handleDeleteTab = async (tabId: string) => {
-    if (!profile) return;
-    if (profile.tabs.length <= 1) {
-      alert("Can't delete the last tab");
+  const requestDeleteTab = (tabId: string) => {
+    setDeleteTabId(tabId);
+    setDeleteOpen(true);
+  };
+
+  const confirmDeleteTab = async () => {
+    if (!profile || !deleteTabId) {
+      setDeleteOpen(false);
       return;
     }
-    if (!confirm('Delete this tab?')) return;
-
+    if (profile.tabs.length <= 1) {
+      notify("Can't delete the last tab", 'warning');
+      setDeleteOpen(false);
+      setDeleteTabId(null);
+      return;
+    }
     try {
-      await api.deleteTab(profile._id, tabId);
-      removeTab(profile._id, tabId);
-      if (selectedTabId === tabId) {
+      await api.deleteTab(profile._id, deleteTabId);
+      removeTab(profile._id, deleteTabId);
+      if (selectedTabId === deleteTabId) {
         setSelectedTabId(profile.tabs[0]?.id || null);
       }
+      notify('Tab deleted', 'success');
     } catch (err) {
-      alert(getErrorMessage(err));
+      notify(getErrorMessage(err as any), 'error');
+    } finally {
+      setDeleteOpen(false);
+      setDeleteTabId(null);
     }
   };
 
@@ -176,7 +222,7 @@ export function EditorPage() {
       await api.updateTab(profile._id, tab.id, { enabled: !tab.enabled });
       updateTab(profile._id, tab.id, { enabled: !tab.enabled });
     } catch (err) {
-      alert(getErrorMessage(err));
+      notify(getErrorMessage(err), 'error');
     }
   };
 
@@ -243,6 +289,75 @@ export function EditorPage() {
     }
   };
 
+ const parseModels = (s: string) => s.split(',').map(m => m.trim()).filter(Boolean);
+
+ const handlePublishSubmit = async () => {
+   if (!profile) return;
+   try {
+     const { profile: wp } = await api.publishWorkshop({
+       profileId: profile._id,
+       title: (pubTitle && pubTitle.trim()) || profile.name,
+       description: pubDescription,
+       preferredModels: parseModels(pubPreferredModels),
+       preferredProviderType: pubProviderType,
+       includeAllTabs: pubIncludeAllTabs,
+     });
+     // Update local linkage metadata optimistically
+     updateProfile(profile._id, {
+       workshopPublishedId: (wp as any)._id,
+       workshopIncludeAllTabs: pubIncludeAllTabs,
+     } as any);
+     setPublishOpen(false);
+     notify('Published to Workshop', 'success');
+   } catch (err) {
+     notify(getErrorMessage(err as any), 'error');
+   }
+ };
+
+ // Prefill Update modal with current Workshop metadata
+ const openUpdateModal = async () => {
+   if (!profile?.workshopPublishedId) {
+     setUpdateOpen(true);
+     return;
+   }
+   try {
+     const res = await api.getWorkshopDetail(profile.workshopPublishedId, { includeAllVersions: false, versionsLimit: 1 });
+     const wp = (res as any).profile;
+     const last = (res as any).versions?.[0];
+
+     setUpdTitle(wp?.title ?? '');
+     setUpdDescription(wp?.description ?? '');
+     setUpdPreferredModels(Array.isArray(wp?.preferredModels) ? wp.preferredModels.join(', ') : '');
+     setUpdProviderType((wp?.preferredProviderType as any) || '');
+     if (last && typeof last.includeAllTabs === 'boolean') {
+       setUpdIncludeAllTabs(!!last.includeAllTabs);
+     }
+   } catch {
+     // ignore and still open
+   } finally {
+     setUpdateOpen(true);
+   }
+ };
+
+ const handleUpdateSubmit = async () => {
+   if (!profile || !profile.workshopPublishedId) return;
+   try {
+     await api.updateWorkshop(profile.workshopPublishedId, {
+       profileId: profile._id,
+       changelog: updChangelog,
+       title: updTitle && updTitle.trim() ? updTitle.trim() : undefined,
+       description: updDescription !== '' ? updDescription : undefined,
+       preferredModels: updPreferredModels ? parseModels(updPreferredModels) : undefined,
+       preferredProviderType: updProviderType || undefined,
+       includeAllTabs: updIncludeAllTabs,
+     });
+     setUpdateOpen(false);
+     notify('Workshop publication updated', 'success');
+   } catch (err) {
+     notify(getErrorMessage(err as any), 'error');
+   }
+ };
+
   if (!profile) {
     return (
       <div className="max-w-5xl mx-auto">
@@ -273,6 +388,9 @@ export function EditorPage() {
           <h1 className="text-3xl font-bold mb-2">Tab Editor</h1>
           <p className="text-white/60">
             Profile: <span className="text-white font-medium">{profile.name}</span>
+          </p>
+          <p className="text-white/60 mt-1">
+            Total tokens (all tabs): <span className="text-accent-1 font-semibold">{totalTokens}</span>
           </p>
         </div>
         
@@ -309,6 +427,72 @@ export function EditorPage() {
               </div>
             </div>
           </div>
+        </div>
+        {/* Workshop Publish/Update */}
+        <div className="flex items-center gap-2">
+          {profile.workshopPublishedId ? (
+            <>
+              <Button variant="primary" onClick={openUpdateModal}>
+                <Icon icon="lucide:upload" className="w-4 h-4" />
+                Update
+              </Button>
+              <Link to={`/workshop/${profile.workshopPublishedId}`}>
+                <Button variant="ghost">
+                  <Icon icon="lucide:external-link" className="w-4 h-4" />
+                  View
+                </Button>
+              </Link>
+            </>
+          ) : (
+            <Button variant="success" onClick={() => setPublishOpen(true)}>
+              <Icon icon="lucide:rocket" className="w-4 h-4" />
+              Publish
+            </Button>
+          )}
+
+          {/* Linked profile controls */}
+          {profile.workshopLinkedId && (
+            <div className="flex items-center gap-2 ml-3">
+              <span className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-300">
+                <Icon icon="lucide:link" className="w-3.5 h-3.5" />
+                Linked{profile.workshopAutoUpdate ? ' (auto)' : ''}
+              </span>
+              <ToggleSwitch
+                checked={!!profile.workshopAutoUpdate}
+                onChange={async (v) => {
+                  try {
+                    await api.updateProfile(profile._id, { workshopAutoUpdate: v } as any);
+                    updateProfile(profile._id, { workshopAutoUpdate: v } as any);
+                    notify(`Auto-update ${v ? 'enabled' : 'disabled'}`, 'success');
+                  } catch (err) {
+                    notify(getErrorMessage(err as any), 'error');
+                  }
+                }}
+                label="Auto-update"
+              />
+              <Button
+                variant="ghost"
+                onClick={async () => {
+                  try {
+                    const { profile: p } = await api.syncLinkedProfile(profile._id);
+                    updateProfile(profile._id, p as any);
+                    notify('Linked profile synced', 'success');
+                  } catch (err) {
+                    notify(getErrorMessage(err as any), 'error');
+                  }
+                }}
+              >
+                <Icon icon="lucide:refresh-cw" className="w-4 h-4" />
+                Sync
+              </Button>
+              <Link to={`/workshop/${profile.workshopLinkedId}`}>
+                <Button variant="ghost">
+                  <Icon icon="lucide:external-link" className="w-4 h-4" />
+                  View
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
       </motion.div>
 
@@ -430,7 +614,7 @@ export function EditorPage() {
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      handleDeleteTab(tab.id);
+                                      requestDeleteTab(tab.id);
                                     }}
                                     className="flex-1 p-1.5 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors text-xs font-medium flex items-center justify-center gap-1"
                                     title="Delete"
@@ -610,6 +794,203 @@ export function EditorPage() {
           </div>
         </div>
       </div>
+
+      {/* Confirm Delete Tab Modal */}
+      <ConfirmModal
+        open={deleteOpen}
+        title="Delete this tab?"
+        description="This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        danger
+        onConfirm={confirmDeleteTab}
+        onCancel={() => {
+          setDeleteOpen(false);
+          setDeleteTabId(null);
+        }}
+      />
+
+      {/* Publish Modal */}
+      {publishOpen && (
+        <>
+          <div className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-xl" onClick={() => setPublishOpen(false)} />
+          <div className="fixed inset-0 z-[210] flex items-center justify-center p-4">
+            <Card className="w-full max-w-xl">
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-lg font-semibold">Publish to Workshop</div>
+                <button className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center" onClick={() => setPublishOpen(false)}>
+                  <Icon icon="lucide:x" className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <Input
+                  label="Title"
+                  value={pubTitle}
+                  onChange={(e) => setPubTitle(e.target.value)}
+                  placeholder="Publication title"
+                />
+                <div>
+                  <label className="block text-xs text-white/60 mb-2 font-medium">Description (Markdown)</label>
+                  <textarea
+                    className="input min-h-[120px]"
+                    value={pubDescription}
+                    onChange={(e) => setPubDescription(e.target.value)}
+                    placeholder="Describe your profile..."
+                  />
+                </div>
+                <Input
+                  label="Preferred models (comma-separated)"
+                  value={pubPreferredModels}
+                  onChange={(e) => setPubPreferredModels(e.target.value)}
+                  placeholder="gpt-4o, x-ai/grok-4, deepseek/deepseek-r1"
+                />
+                <div>
+                  <label className="block text-xs text-white/60 mb-2 font-medium">Preferred provider</label>
+                  <PopoverSelect<string>
+                    value={(pubProviderType as any) || ''}
+                    onChange={(val: string) => setPubProviderType(val)}
+                    placeholder="None"
+                    options={[
+                      { value: 'openrouter' as any, label: 'openrouter' },
+                      { value: 'aistudio' as any, label: 'aistudio' },
+                      { value: 'gorouter' as any, label: 'gorouter' },
+                      // { value: 'free' as any, label: 'free' },
+                      { value: 'custom' as any, label: 'custom' },
+                      { value: '' as any, label: 'None' },
+                    ]}
+                    renderBadge={(val: string) => (
+                      <span className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-bold ${
+                        val === 'openrouter' ? 'bg-blue-500/25 border border-blue-500/50 text-blue-400'
+                        : val === 'aistudio' ? 'bg-orange-500/25 border border-orange-500/50 text-orange-400'
+                        : val === 'gorouter' ? 'bg-green-500/25 border border-green-500/50 text-green-400'
+                        : val === 'custom' ? 'bg-purple-500/25 border border-purple-500/50 text-purple-400'
+                        // : val === 'free' ? 'bg-emerald-500/25 border border-emerald-500/50 text-emerald-400'
+                        : 'bg-white/10 border border-white/20 text-white/60'
+                      }`}>
+                        {(val || 'N').slice(0,1).toUpperCase()}
+                      </span>
+                    )}
+                  />
+                </div>
+                <ToggleSwitch
+                  checked={pubIncludeAllTabs}
+                  onChange={setPubIncludeAllTabs}
+                  label="Include all tabs (not only enabled)"
+                />
+              </div>
+
+              <div className="mt-4 flex items-center justify-end gap-2">
+                <Button variant="ghost" onClick={() => setPublishOpen(false)}>
+                  Cancel
+                </Button>
+                <Button variant="primary" onClick={handlePublishSubmit}>
+                  <Icon icon="lucide:rocket" className="w-4 h-4" />
+                  Publish
+                </Button>
+              </div>
+            </Card>
+          </div>
+        </>
+      )}
+
+      {/* Update Modal */}
+      {updateOpen && (
+        <>
+          <div className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-xl" onClick={() => setUpdateOpen(false)} />
+          <div className="fixed inset-0 z-[210] flex items-center justify-center p-4">
+            <Card className="w-full max-w-xl">
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-lg font-semibold">Update Publication</div>
+                <button className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center" onClick={() => setUpdateOpen(false)}>
+                  <Icon icon="lucide:x" className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs text-white/60 mb-2 font-medium">Changelog (Markdown)</label>
+                  <textarea
+                    className="input min-h-[120px]"
+                    value={updChangelog}
+                    onChange={(e) => setUpdChangelog(e.target.value)}
+                    placeholder="What changed in this version?"
+                  />
+                </div>
+
+                <ModalDisclosure title="Update metadata (optional)">
+                  <Input
+                    label="New title (optional)"
+                    value={updTitle}
+                    onChange={(e) => setUpdTitle(e.target.value)}
+                    placeholder="Leave empty to keep current"
+                  />
+                  <div className="mt-3">
+                    <label className="block text-xs text-white/60 mb-2 font-medium">New description (optional, Markdown)</label>
+                    <textarea
+                      className="input min-h-[100px]"
+                      value={updDescription}
+                      onChange={(e) => setUpdDescription(e.target.value)}
+                      placeholder="Leave empty to keep current"
+                    />
+                  </div>
+                  <Input
+                    label="Preferred models (override, comma-separated; optional)"
+                    value={updPreferredModels}
+                    onChange={(e) => setUpdPreferredModels(e.target.value)}
+                    placeholder="Leave empty to keep current"
+                  />
+                  <div className="mt-3">
+                    <label className="block text-xs text-white/60 mb-2 font-medium">Preferred provider (override; optional)</label>
+                    <PopoverSelect<string>
+                      value={(updProviderType as any) || ''}
+                      onChange={(val: string) => setUpdProviderType(val)}
+                      placeholder="Keep current"
+                      options={[
+                        { value: 'openrouter' as any, label: 'openrouter' },
+                        { value: 'aistudio' as any, label: 'aistudio' },
+                        { value: 'gorouter' as any, label: 'gorouter' },
+                        // { value: 'free' as any, label: 'free' },
+                        { value: 'custom' as any, label: 'custom' },
+                        { value: '' as any, label: 'Keep current' },
+                      ]}
+                      renderBadge={(val: string) => (
+                        <span className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-bold ${
+                          val === 'openrouter' ? 'bg-blue-500/25 border border-blue-500/50 text-blue-400'
+                          : val === 'aistudio' ? 'bg-orange-500/25 border border-orange-500/50 text-orange-400'
+                          : val === 'gorouter' ? 'bg-green-500/25 border border-green-500/50 text-green-400'
+                          : val === 'custom' ? 'bg-purple-500/25 border border-purple-500/50 text-purple-400'
+                          // : val === 'free' ? 'bg-emerald-500/25 border border-emerald-500/50 text-emerald-400'
+                          : 'bg-white/10 border border-white/20 text-white/60'
+                        }`}>
+                          {(val || 'K').slice(0,1).toUpperCase()}
+                        </span>
+                      )}
+                    />
+                  </div>
+                  <div className="mt-3">
+                    <ToggleSwitch
+                      checked={updIncludeAllTabs}
+                      onChange={setUpdIncludeAllTabs}
+                      label="Include all tabs (not only enabled)"
+                    />
+                  </div>
+                </ModalDisclosure>
+              </div>
+
+              <div className="mt-4 flex items-center justify-end gap-2">
+                <Button variant="ghost" onClick={() => setUpdateOpen(false)}>
+                  Cancel
+                </Button>
+                <Button variant="primary" onClick={handleUpdateSubmit}>
+                  <Icon icon="lucide:upload" className="w-4 h-4" />
+                  Update
+                </Button>
+              </div>
+            </Card>
+          </div>
+        </>
+      )}
 
       {/* AI Assistant */}
       <EditorAssistant

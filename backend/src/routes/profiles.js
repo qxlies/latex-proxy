@@ -18,7 +18,11 @@ router.put('/:id', async (req, res) => {
   const {
     user: { userId },
     params: { id: profileId },
-    body: { name, proxyEndpoint, proxyApiKey, model, activeTabId, tabs, extraParams, providerType, providers, mergeConsecutiveRoles },
+    body: {
+      name, proxyEndpoint, proxyApiKey, model, activeTabId, tabs, extraParams, providerType, providers, mergeConsecutiveRoles,
+      // workshop linkage/publish fields
+      workshopLinkedId, workshopLinkedVersion, workshopAutoUpdate, workshopIncludeAllTabs, workshopPublishedId
+    },
   } = req;
 
   const updateData = {};
@@ -33,6 +37,12 @@ router.put('/:id', async (req, res) => {
   if (providers) updateData.providers = providers;
   if (typeof mergeConsecutiveRoles === 'boolean') updateData.mergeConsecutiveRoles = mergeConsecutiveRoles;
 
+  // Allow updating workshop linkage/publish metadata
+  if (typeof workshopLinkedId !== 'undefined') updateData.workshopLinkedId = workshopLinkedId || null;
+  if (typeof workshopLinkedVersion !== 'undefined') updateData.workshopLinkedVersion = workshopLinkedVersion ?? null;
+  if (typeof workshopAutoUpdate === 'boolean') updateData.workshopAutoUpdate = workshopAutoUpdate;
+  if (typeof workshopIncludeAllTabs === 'boolean') updateData.workshopIncludeAllTabs = workshopIncludeAllTabs;
+  if (typeof workshopPublishedId !== 'undefined') updateData.workshopPublishedId = workshopPublishedId || null;
 
   if (name === '') {
     return res.status(400).send('Name cannot be empty');

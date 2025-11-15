@@ -11,6 +11,8 @@ import { Layout } from './components/Layout';
 import { Loading } from './components/ui';
 import { useStore } from './store/useStore';
 import { api } from './lib/api';
+import WorkshopPage from './pages/Workshop';
+import WorkshopDetailPage from './pages/WorkshopDetail';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useStore();
@@ -87,6 +89,8 @@ function App() {
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="profiles" element={<ProfilesPage />} />
           <Route path="editor" element={<EditorPage />} />
+          <Route path="workshop" element={<WorkshopPage />} />
+          <Route path="workshop/:id" element={<WorkshopDetailPage />} />
           <Route path="providers" element={<ProvidersPage />} />
           <Route path="filters" element={<ContentFiltersPage />} />
           <Route path="logs" element={<LogsPage />} />
@@ -102,6 +106,11 @@ function App() {
 
 function ChangelogPage() {
   const items = [
+    { version: '1.0.2', date: '2025-11-15', notes: [
+      '📚 Prompt Workshop! Publish your profiles and share them with others—built-in version control and auto-sync.',
+      'Totally redesigned Profiles tab that\'s way easier to use.',
+      'Request Parameters tab in provider settings, now you can add or exclude parameters in your requests.'
+    ]},
     { version: '1.0.1', date: '2025-11-13', notes: [
       'Mobile site layout improvements',
       'Minor bug fixes',

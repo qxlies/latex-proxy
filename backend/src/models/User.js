@@ -37,6 +37,10 @@ const UserSchema = new mongoose.Schema({
    type: Boolean,
    default: false,
   },
+  isAdmin: {
+   type: Boolean,
+   default: false,
+  },
   profileOrder: {
    type: [mongoose.Schema.Types.ObjectId],
    default: [],
@@ -45,7 +49,7 @@ const UserSchema = new mongoose.Schema({
   globalProviderType: {
     type: String,
     default: 'openrouter',
-    enum: ['openrouter', 'aistudio', 'gorouter', 'free', 'custom'],
+    enum: ['openrouter', 'aistudio', 'gorouter', 'custom'],
   },
   globalProviders: {
     type: Object,
@@ -53,7 +57,7 @@ const UserSchema = new mongoose.Schema({
       openrouter: { apiKey: '', model: '' },
       aistudio: { apiKey: '', model: 'gemini-2.5-pro' },
       gorouter: { apiKey: '', model: '', thinkingEnabled: false, effort: 'medium', provider: 'Google' },
-      free: { model: 'gemini-2.5-pro' },
+      // free: { model: 'gemini-2.5-pro' },
       custom: { endpoint: '', apiKey: '', model: '' }
     }
   },

@@ -4,11 +4,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Icon } from '@iconify/react';
 import { useStore } from '../store/useStore';
 import { Button } from './ui';
+import Toasts from './Toasts';
 
 const navItems = [
   { path: '/dashboard', icon: 'lucide:layout-dashboard', label: 'Dashboard' },
   { path: '/profiles', icon: 'lucide:folder', label: 'Profiles' },
   { path: '/editor', icon: 'lucide:edit', label: 'Editor' },
+  { path: '/workshop', icon: 'lucide:store', label: 'Workshop' },
   { path: '/providers', icon: 'lucide:settings', label: 'Providers' },
   { path: '/filters', icon: 'lucide:filter', label: 'Filters' },
   { path: '/logs', icon: 'lucide:file-text', label: 'Logs' },
@@ -269,6 +271,9 @@ export function Layout() {
           </div>
         </div>
       </main>
+
+      {/* Global notifications */}
+      <Toasts />
     </div>
   );
 }

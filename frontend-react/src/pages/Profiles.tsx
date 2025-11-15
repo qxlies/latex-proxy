@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Icon } from '@iconify/react';
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
-import { Card, Button, Input } from '../components/ui';
+import { Card, Button, Input, ToggleSwitch, ConfirmModal, PromptModal } from '../components/ui';
 import { useStore } from '../store/useStore';
+import { notify } from '../store/notifications';
 import { api } from '../lib/api';
 import { downloadJSON, readJSONFile, getErrorMessage } from '../lib/utils';
 import type { Profile } from '../types';
@@ -28,6 +29,14 @@ export function ProfilesPage() {
   const [error, setError] = useState('');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [providerModalProfile, setProviderModalProfile] = useState<Profile | null>(null);
+
+  const [actionsOpenId, setActionsOpenId] = useState<string | null>(null);
+
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [renameTarget, setRenameTarget] = useState<Profile | null>(null);
+
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Profile | null>(null);
 
   // Close mobile "More" dropdown on ESC or scroll
   useEffect(() => {
@@ -84,15 +93,27 @@ All subsequent blocks constitute this mandatory guide.` },
     }
   };
 
-  const handleRenameProfile = async (profile: Profile) => {
-    const newName = prompt('Enter new profile name:', profile.name);
-    if (!newName || newName === profile.name) return;
+  const handleRenameProfile = (profile: Profile) => {
+    setRenameTarget(profile);
+    setRenameOpen(true);
+  };
 
+  const confirmRenameProfile = async (newName: string) => {
+    if (!renameTarget) return;
+    if (!newName || newName === renameTarget.name) {
+      setRenameOpen(false);
+      setRenameTarget(null);
+      return;
+    }
     try {
-      await api.updateProfile(profile._id, { name: newName });
-      updateProfile(profile._id, { name: newName });
+      await api.updateProfile(renameTarget._id, { name: newName });
+      updateProfile(renameTarget._id, { name: newName });
+      notify('Profile renamed', 'success');
     } catch (err) {
-      alert(getErrorMessage(err));
+      notify(getErrorMessage(err), 'error');
+    } finally {
+      setRenameOpen(false);
+      setRenameTarget(null);
     }
   };
 
@@ -100,24 +121,38 @@ All subsequent blocks constitute this mandatory guide.` },
     try {
       const { profile: newProfile } = await api.cloneProfile(profile._id);
       addProfile(newProfile);
+      notify('Profile cloned', 'success');
     } catch (err) {
-      alert(getErrorMessage(err));
+      notify(getErrorMessage(err), 'error');
     }
   };
 
-  const handleDeleteProfile = async (profile: Profile) => {
+  const handleDeleteProfile = (profile: Profile) => {
+    setDeleteTarget(profile);
+    setDeleteOpen(true);
+  };
+
+  const confirmDeleteProfile = async () => {
+    if (!deleteTarget) {
+      setDeleteOpen(false);
+      return;
+    }
     if (profiles.length <= 1) {
-      alert("You can't delete the last profile");
+      notify("You can't delete the last profile", 'warning');
+      setDeleteOpen(false);
+      setDeleteTarget(null);
       return;
     }
 
-    if (!confirm(`Delete profile "${profile.name}"?`)) return;
-
     try {
-      await api.deleteProfile(profile._id);
-      removeProfile(profile._id);
+      await api.deleteProfile(deleteTarget._id);
+      removeProfile(deleteTarget._id);
+      notify('Profile deleted', 'success');
     } catch (err) {
-      alert(getErrorMessage(err));
+      notify(getErrorMessage(err), 'error');
+    } finally {
+      setDeleteOpen(false);
+      setDeleteTarget(null);
     }
   };
 
@@ -128,8 +163,9 @@ All subsequent blocks constitute this mandatory guide.` },
       if (user) {
         setUser({ ...user, activeProfileId });
       }
+      notify('Profile set for API', 'success');
     } catch (err) {
-      alert(getErrorMessage(err));
+      notify(getErrorMessage(err), 'error');
     }
   };
 
@@ -139,15 +175,8 @@ All subsequent blocks constitute this mandatory guide.` },
     delete (exportData as any).userId;
     delete (exportData as any).__v;
     delete (exportData as any).proxyApiKey;
-    if (exportData.providers) {
-      if (exportData.providers.gorouter) exportData.providers.gorouter.apiKey = '';
-      if (exportData.providers.openrouter) exportData.providers.openrouter.apiKey = '';
-      if (exportData.providers.aistudio) exportData.providers.aistudio.apiKey = '';
-      if (exportData.providers.custom) {
-        exportData.providers.custom.apiKey = '';
-        exportData.providers.custom.endpoint = '';
-      }
-    }
+    delete (exportData as any).providers;
+    delete (exportData as any).proxyEndpoint;
     downloadJSON(exportData, `${profile.name}.json`);
   };
 
@@ -165,8 +194,9 @@ All subsequent blocks constitute this mandatory guide.` },
         const { profile } = await api.createProfile(data);
         addProfile(profile);
         setSelectedProfileId(profile._id);
+        notify('Profile imported', 'success');
       } catch (err) {
-        alert(getErrorMessage(err));
+        notify(getErrorMessage(err), 'error');
       }
     };
     input.click();
@@ -256,11 +286,11 @@ All subsequent blocks constitute this mandatory guide.` },
               ref={provided.innerRef}
               className="space-y-3 min-h-[8px]"
             >
-              {profiles.map((profile, index) => (
+              {[...profiles].reverse().map((profile, index) => (
                 <Draggable
                   key={profile._id}
                   draggableId={profile._id}
-                  index={index}
+                  index={profiles.length - 1 - index}
                 >
                   {(provided, snapshot) => (
                     <div
@@ -269,9 +299,7 @@ All subsequent blocks constitute this mandatory guide.` },
                       style={provided.draggableProps.style as any}
                     >
                       <Card
-                        onClick={() => setSelectedProfileId(profile._id)}
-                        {...provided.dragHandleProps}
-                        className={`relative transition-colors cursor-grab active:cursor-grabbing ${
+                        className={`relative transition-all overflow-hidden ${
                           snapshot.isDragging ? 'shadow-2xl' : ''
                         } ${
                           selectedProfileId === profile._id
@@ -283,209 +311,209 @@ All subsequent blocks constitute this mandatory guide.` },
                             : ''
                         }`}
                       >
-                        <div className="flex items-center gap-4 flex-wrap md:flex-nowrap">
-                          {/* Drag Handle (visual only) */}
+                        {/* Main card content - clickable to expand */}
+                        <div
+                          className="flex items-center gap-4 cursor-pointer"
+                          onClick={() => setActionsOpenId((prev) => (prev === profile._id ? null : profile._id))}
+                        >
+                          {/* Drag Handle */}
                           <div
-                            className="text-white/40 hover:text-white/60 p-2 -m-2"
+                            {...provided.dragHandleProps}
+                            className="text-white/40 hover:text-white/60 p-2 -m-2 cursor-grab active:cursor-grabbing"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <Icon icon="lucide:grip-vertical" className="w-5 h-5" />
                           </div>
 
                           {/* Profile Info */}
-                          <div className="flex-1 min-w-0 basis-full md:basis-auto">
-                            <div className="flex items-center gap-2 mb-1">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
                               <h3 className="font-semibold truncate">
                                 {profile.name}
                               </h3>
                               {selectedProfileId === profile._id && (
-                                <span className="badge badge-primary text-sm leading-tight py-1.5 px-2.5">
+                                <span className="badge badge-primary text-xs px-2 py-0.5">
                                   Selected
                                 </span>
                               )}
                               {user?.activeProfileId === profile._id && (
-                                <span className="badge badge-success text-sm leading-tight py-1.5 px-2.5">
+                                <span className="badge badge-success text-xs px-2 py-0.5">
                                   API
                                 </span>
                               )}
+                              {profile.workshopPublishedId && (
+                                <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-purple-500/15 border border-purple-500/30 text-purple-300">
+                                  <Icon icon="lucide:rocket" className="w-3 h-3" />
+                                  Published
+                                </span>
+                              )}
+                              {profile.workshopLinkedId && (
+                                <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-300">
+                                  <Icon icon="lucide:link" className="w-3 h-3" />
+                                  Linked{profile.workshopAutoUpdate ? ' (auto)' : ''}
+                                </span>
+                              )}
                             </div>
-                            <p className="text-sm text-white/60">
+                            <p className="text-xs text-white/60">
                               {profile.tabs.length} tabs •{' '}
                               {profile.tabs.filter((t) => t.enabled).length} enabled •{' '}
                               <span className={profile.useGlobalProvider !== false ? 'text-emerald-400' : 'text-blue-400'}>
-                                {profile.useGlobalProvider !== false ? 'Global Provider' : `Custom (${profile.providerType})`}
+                                {profile.useGlobalProvider !== false ? 'Global' : profile.providerType}
                               </span>
                             </p>
                           </div>
 
-                          {/* Actions */}
-                          <div className="flex items-center gap-2 ml-auto w-full md:w-auto justify-between md:justify-end flex-wrap">
-                            {/* Primary quick actions (visible on all sizes) */}
+                          {/* Primary actions (always visible) */}
+                          <div className="flex items-center gap-2">
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="px-2 py-1"
-                              onClick={() => setSelectedProfileId(profile._id)}
-                              title="Select"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedProfileId(profile._id);
+                              }}
+                              title="Select this profile"
                             >
                               <Icon icon="lucide:check" className="w-4 h-4" />
                             </Button>
                             <Button
-                              variant="ghost"
+                              variant="success"
                               size="sm"
-                              className="px-2 py-1"
-                              onClick={() => handleSetActiveProfile(profile._id)}
-                              title="Set for API"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSetActiveProfile(profile._id);
+                              }}
+                              title="Set as active for API"
                             >
                               <Icon icon="lucide:zap" className="w-4 h-4" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="px-2 py-1"
-                              onClick={() => setProviderModalProfile(profile)}
-                              title="Provider Settings"
-                            >
-                              <Icon icon="lucide:settings" className="w-4 h-4" />
-                            </Button>
+                          </div>
 
-                            {/* Secondary actions: inline on md+, collapsible on mobile */}
-                            <div className="hidden md:flex items-center gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleExportProfile(profile)}
-                                title="Export"
-                              >
-                                <Icon icon="lucide:download" className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleRenameProfile(profile)}
-                                title="Rename"
-                              >
-                                <Icon icon="lucide:edit" className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleCloneProfile(profile)}
-                                title="Clone"
-                              >
-                                <Icon icon="lucide:copy" className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="danger"
-                                size="sm"
-                                onClick={() => handleDeleteProfile(profile)}
-                                title="Delete"
-                              >
-                                <Icon icon="lucide:trash-2" className="w-4 h-4" />
-                              </Button>
-                            </div>
-
-                            {/* Mobile: compact dropdown menu (controlled, closes on action/outside, with spacing) */}
-                            <div className="relative md:hidden">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="px-2 py-1"
-                                title="More"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setOpenMenuId(openMenuId === profile._id ? null : profile._id);
-                                }}
-                              >
-                                <Icon icon="lucide:more-horizontal" className="w-4 h-4" />
-                                More
-                              </Button>
-                              {openMenuId === profile._id && (
-                                <>
-                                  {/* Click-away overlay to close the menu */}
-                                  <div
-                                    className="fixed inset-0 z-40"
-                                    onClick={() => setOpenMenuId(null)}
-                                  />
-                                  <div
-                                    className="absolute right-0 top-full mt-2 z-50 w-[min(240px,92vw)] p-2 bg-white/6 border border-white/14 rounded-xl shadow-xl backdrop-blur-sm"
-                                    onClick={(e) => e.stopPropagation()}
-                                    role="menu"
-                                    aria-label="Profile actions"
-                                  >
-                                    <div className="flex flex-col gap-2">
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="w-full justify-start"
-                                        onClick={() => {
-                                          setOpenMenuId(null);
-                                          setProviderModalProfile(profile);
-                                        }}
-                                        title="Provider Settings"
-                                      >
-                                        <Icon icon="lucide:settings" className="w-4 h-4" />
-                                        <span className="ml-2">Provider Settings</span>
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="w-full justify-start"
-                                        onClick={() => {
-                                          setOpenMenuId(null);
-                                          handleExportProfile(profile);
-                                        }}
-                                        title="Export"
-                                      >
-                                        <Icon icon="lucide:download" className="w-4 h-4" />
-                                        <span className="ml-2">Export</span>
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="w-full justify-start"
-                                        onClick={() => {
-                                          setOpenMenuId(null);
-                                          handleRenameProfile(profile);
-                                        }}
-                                        title="Rename"
-                                      >
-                                        <Icon icon="lucide:edit" className="w-4 h-4" />
-                                        <span className="ml-2">Rename</span>
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="w-full justify-start"
-                                        onClick={() => {
-                                          setOpenMenuId(null);
-                                          handleCloneProfile(profile);
-                                        }}
-                                        title="Clone"
-                                      >
-                                        <Icon icon="lucide:copy" className="w-4 h-4" />
-                                        <span className="ml-2">Clone</span>
-                                      </Button>
-                                      <Button
-                                        variant="danger"
-                                        size="sm"
-                                        className="w-full justify-start"
-                                        onClick={() => {
-                                          setOpenMenuId(null);
-                                          handleDeleteProfile(profile);
-                                        }}
-                                        title="Delete"
-                                      >
-                                        <Icon icon="lucide:trash-2" className="w-4 h-4" />
-                                        <span className="ml-2">Delete</span>
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </>
-                              )}
-                            </div>
+                          {/* Expand indicator */}
+                          <div className="text-white/40">
+                            <Icon
+                              icon={actionsOpenId === profile._id ? 'lucide:chevron-up' : 'lucide:chevron-down'}
+                              className="w-5 h-5"
+                            />
                           </div>
                         </div>
+
+                        {/* Expandable actions panel */}
+                        <AnimatePresence>
+                          {actionsOpenId === profile._id && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.2, ease: 'easeOut' }}
+                              className="overflow-hidden"
+                            >
+                              <div className="pt-3 mt-3 border-t border-white/14">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setProviderModalProfile(profile);
+                                    }}
+                                    className="justify-start"
+                                  >
+                                    <Icon icon="lucide:settings" className="w-4 h-4 mr-2" />
+                                    Provider
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleExportProfile(profile);
+                                    }}
+                                    className="justify-start"
+                                  >
+                                    <Icon icon="lucide:download" className="w-4 h-4 mr-2" />
+                                    Export
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRenameProfile(profile);
+                                    }}
+                                    className="justify-start"
+                                  >
+                                    <Icon icon="lucide:edit" className="w-4 h-4 mr-2" />
+                                    Rename
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleCloneProfile(profile);
+                                    }}
+                                    className="justify-start"
+                                  >
+                                    <Icon icon="lucide:copy" className="w-4 h-4 mr-2" />
+                                    Clone
+                                  </Button>
+                                  <Button
+                                    variant="danger"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteProfile(profile);
+                                    }}
+                                    className="justify-start"
+                                  >
+                                    <Icon icon="lucide:trash-2" className="w-4 h-4 mr-2" />
+                                    Delete
+                                  </Button>
+
+                                  {/* Linked controls */}
+                                  {profile.workshopLinkedId && (
+                                    <>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={async (e) => {
+                                          e.stopPropagation();
+                                          try {
+                                            const { profile: p } = await api.syncLinkedProfile(profile._id);
+                                            updateProfile(profile._id, p as any);
+                                            notify('Synced', 'success');
+                                          } catch (err) {
+                                            notify(getErrorMessage(err as any), 'error');
+                                          }
+                                        }}
+                                        className="justify-start col-span-2 sm:col-span-1"
+                                      >
+                                        <Icon icon="lucide:refresh-cw" className="w-4 h-4 mr-2" />
+                                        Sync
+                                      </Button>
+                                      <div className="col-span-2 sm:col-span-2 md:col-span-4 flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10">
+                                        <span className="text-xs text-white/60 flex-shrink-0">Auto-update</span>
+                                        <ToggleSwitch
+                                          checked={!!profile.workshopAutoUpdate}
+                                          onChange={async (v) => {
+                                            try {
+                                              await api.updateProfile(profile._id, { workshopAutoUpdate: v } as any);
+                                              updateProfile(profile._id, { workshopAutoUpdate: v } as any);
+                                              notify(`Auto-update ${v ? 'enabled' : 'disabled'}`, 'success');
+                                            } catch (err) {
+                                              notify(getErrorMessage(err as any), 'error');
+                                            }
+                                          }}
+                                        />
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </Card>
                     </div>
                   )}
@@ -504,7 +532,7 @@ All subsequent blocks constitute this mandatory guide.` },
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
             onClick={() => setProviderModalProfile(null)}
           >
             <motion.div
@@ -512,7 +540,7 @@ All subsequent blocks constitute this mandatory guide.` },
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-md"
+              className="w-full max-w-md relative z-[210]"
             >
               <Card>
                 <div className="flex items-center justify-between mb-4">
@@ -693,6 +721,35 @@ All subsequent blocks constitute this mandatory guide.` },
           </motion.div>
         )}
       </AnimatePresence>
+      {/* Rename Modal */}
+      <PromptModal
+        open={renameOpen}
+        title="Rename Profile"
+        label="New name"
+        placeholder="Enter new profile name"
+        defaultValue={renameTarget?.name ?? ''}
+        onSubmit={confirmRenameProfile}
+        onCancel={() => {
+          setRenameOpen(false);
+          setRenameTarget(null);
+        }}
+        validate={(val) => (!val.trim() ? 'Name is required' : null)}
+      />
+
+      {/* Delete Modal */}
+      <ConfirmModal
+        open={deleteOpen}
+        title={`Delete profile "${deleteTarget?.name ?? ''}"?`}
+        description="This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        danger
+        onConfirm={confirmDeleteProfile}
+        onCancel={() => {
+          setDeleteOpen(false);
+          setDeleteTarget(null);
+        }}
+      />
     </div>
   );
 }

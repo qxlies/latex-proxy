@@ -21,10 +21,11 @@ const profileRouter = require('./routes/profiles')
 const userRouter = require('./routes/user')
 const logRouter = require('./routes/logs')
 const editorAssistantRouter = require('./routes/editor-assistant')
+const workshopRouter = require('./routes/workshop')
 
 const PORT = process.env.PORT || 3000
-const FREE_ENDPOINT = process.env.ENDPOINT
-const FREE_API_KEY = process.env.API_KEY
+// const FREE_ENDPOINT = process.env.ENDPOINT
+// const FREE_API_KEY = process.env.API_KEY
 
 const reactBuildPath = path.join(__dirname, '../../frontend-react/dist');
 const vanillaFrontendPath = path.join(__dirname, '../../frontend');
@@ -40,7 +41,7 @@ if (fs.existsSync(reactBuildPath)) {
 app.use((req, res, next) => {
   res.setHeader('access-control-allow-origin', '*')
   res.setHeader('access-control-allow-headers', 'content-type, authorization')
-  res.setHeader('access-control-allow-methods', 'GET,POST,OPTIONS')
+  res.setHeader('access-control-allow-methods', 'GET,POST,PUT,DELETE,OPTIONS')
   if (req.method === 'OPTIONS') {
     res.status(204).end()
     return
@@ -53,6 +54,7 @@ app.use(express.json({ limit: '1mb' }))
 app.use('/api/profiles', authMiddleware, profileRouter)
 app.use('/api/users', authMiddleware, userRouter)
 app.use('/api/logs', authMiddleware, logRouter)
+app.use('/api/workshop', authMiddleware, workshopRouter)
 app.use('/api/users', editorAssistantRouter)
 
 app.post('/api/auth/register', async (req, res) => {
@@ -244,11 +246,11 @@ app.post('/v1/chat/completions', authMiddleware, async (req, res) => {
           model = provider.model;
           break;
         
-        case 'free':
-          proxyEndpoint = FREE_ENDPOINT;
-          proxyApiKey = FREE_API_KEY;
-          model = provider.model;
-          break;
+        // case 'free':
+        //   proxyEndpoint = FREE_ENDPOINT;
+        //   proxyApiKey = FREE_API_KEY;
+        //   model = provider.model;
+        //   break;
         
         case 'custom':
           proxyEndpoint = provider.endpoint;
@@ -319,20 +321,20 @@ app.post('/v1/chat/completions', authMiddleware, async (req, res) => {
     }
 
     // Handle free provider model mapping
-    if (providerType === 'free' || proxyEndpoint === FREE_ENDPOINT) {
-      switch (body.model) {
-        case 'gemini-2.5-pro':
-          body.model = 'gemini-2.5-pro';
-          break;
+    // if (providerType === 'free' || proxyEndpoint === FREE_ENDPOINT) {
+    //   switch (body.model) {
+    //     case 'gemini-2.5-pro':
+    //       body.model = 'gemini-2.5-pro';
+    //       break;
 
-        case 'gemini-flash-latest':
-          body.model = 'gemini-flash-latest';
-          break;
+    //     case 'gemini-flash-latest':
+    //       body.model = 'gemini-flash-latest';
+    //       break;
 
-        default:
-          throw new Error(`Unsupported model in free provider: ${body.model}`);
-      }
-    }
+    //     default:
+    //       throw new Error(`Unsupported model in free provider: ${body.model}`);
+    //   }
+    // }
     
     const userMessages = body.messages.filter(m => m.role !== 'system');
     const lastUserMessage = userMessages.pop();

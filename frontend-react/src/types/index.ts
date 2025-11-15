@@ -34,6 +34,7 @@ export interface User {
   activeProfileId?: string;
   profileOrder?: string[];
   isLoggingEnabled: boolean;
+  isAdmin?: boolean;
   globalProviderType?: ProviderType;
   globalProviders?: ProviderConfig;
   globalRequestParams?: Record<string, any>;
@@ -94,6 +95,14 @@ export interface Profile {
   model?: string;
   extraParams?: string;
   mergeConsecutiveRoles: boolean;
+
+  // Workshop linkage (optional)
+  workshopLinkedId?: string | null;
+  workshopLinkedVersion?: number | null;
+  workshopAutoUpdate?: boolean;
+  workshopIncludeAllTabs?: boolean;
+  workshopPublishedId?: string | null;
+
   createdAt: string;
   updatedAt: string;
 }
@@ -167,4 +176,82 @@ export interface OpenRouterModel {
     prompt: string;
     completion: string;
   };
+}
+
+/* ===== Workshop (Catalog) Types ===== */
+
+export interface TabSnapshot {
+  role: 'system' | 'user' | 'assistant';
+  title: string;
+  content: string;
+  enabled: boolean;
+  index: number; // original order index in the source profile
+}
+
+export type WorkshopVisibility = 'public' | 'hidden' | 'deleted';
+
+export interface WorkshopProfile {
+  _id: string;
+  ownerId: string;
+  title: string;
+  description: string; // markdown
+  visibility: WorkshopVisibility;
+
+  // Advisory/display fields
+  preferredModels: string[];
+  preferredProviderType: ProviderType | '';
+
+  // Catalog meta
+  tags: string[];
+  isFeatured: boolean;
+
+  // Versioning meta
+  currentVersion: number;
+  lastPublishedAt?: string | null;
+
+  // Stats
+  stats?: {
+    views: number;
+    imports: number;
+  };
+
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WorkshopVersion {
+  _id: string;
+  workshopProfileId: string;
+  versionNumber: number;
+  changelog: string; // markdown
+  tabs: TabSnapshot[];
+
+  preferredModels: string[];
+  preferredProviderType: ProviderType | '';
+  includeAllTabs: boolean;
+
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WorkshopListResponse {
+  items: WorkshopProfile[];
+  total: number;
+  page: number;
+  pages: number;
+}
+
+export interface WorkshopDetailResponse {
+  profile: WorkshopProfile;
+  versions: WorkshopVersion[];
+}
+
+export interface WorkshopImportResponse {
+  workshopProfileId: string;
+  versionNumber: number;
+  mode: 'link' | 'copy';
+  preferredModels: string[];
+  preferredProviderType: ProviderType | '';
+  includeAllTabs: boolean;
+  tabs: TabSnapshot[];
 }
