@@ -20,6 +20,8 @@ export function WorkshopDetailPage() {
   const [importMode, setImportMode] = useState<'link' | 'copy'>('copy');
   const [importName, setImportName] = useState('');
   const isAdmin = !!user?.isAdmin;
+  const isOwner = data?.profile && user ? (data.profile as any).ownerId === user._id : false;
+  const canManage = isAdmin || isOwner;
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   useEffect(() => {
@@ -85,35 +87,24 @@ export function WorkshopDetailPage() {
     }
   };
 
-  const performAdminAction = async (action: 'hide' | 'unhide' | 'delete') => {
+  const performManageAction = async (action: 'hide' | 'unhide' | 'delete') => {
     if (!id) return;
     try {
-      const path =
-        action === 'hide' ? `/api/workshop/${id}/hide` :
-        action === 'unhide' ? `/api/workshop/${id}/unhide` :
-        `/api/workshop/${id}`;
-      const method = action === 'delete' ? 'DELETE' : 'POST';
-      const res = await fetch(path, {
-        method,
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
-          ...(method !== 'DELETE' ? { 'Content-Type': 'application/json' } : {})
-        }
-      });
-      if (!res.ok) {
-        const t = await res.text();
-        throw new Error(t || 'Admin action failed');
-      }
       if (action === 'delete') {
+        await api.deleteWorkshopProfile(id);
         notify('Publication deleted', 'success');
         navigate('/workshop');
         return;
       }
-      const updated = await res.json();
-      setData((prev) => prev ? { ...prev, profile: updated.profile } : prev);
-      notify(`Publication ${action === 'hide' ? 'hidden' : 'unhidden'}`, 'success');
+      
+      const result = action === 'hide'
+        ? await api.hideWorkshopProfile(id)
+        : await api.unhideWorkshopProfile(id);
+      
+      setData((prev) => prev ? { ...prev, profile: result.profile } : prev);
+      notify(`Publication ${action === 'hide' ? 'hidden' : 'shown'}`, 'success');
     } catch (e: any) {
-      console.error('Admin action failed:', e);
+      console.error('Manage action failed:', e);
       notify(e?.message || 'Action failed', 'error');
     }
   };
@@ -174,18 +165,18 @@ export function WorkshopDetailPage() {
             <Icon icon="lucide:copy" className="w-4 h-4" />
             Copy
           </Button>
-          {isAdmin && (
+          {canManage && (
             <div className="flex items-center gap-2 ml-2">
               {profile.visibility !== 'hidden' && profile.visibility !== 'deleted' && (
-                <Button variant="ghost" onClick={() => performAdminAction('hide')}>
+                <Button variant="ghost" onClick={() => performManageAction('hide')}>
                   <Icon icon="lucide:eye-off" className="w-4 h-4" />
                   Hide
                 </Button>
               )}
               {profile.visibility === 'hidden' && (
-                <Button variant="ghost" onClick={() => performAdminAction('unhide')}>
+                <Button variant="ghost" onClick={() => performManageAction('unhide')}>
                   <Icon icon="lucide:eye" className="w-4 h-4" />
-                  Unhide
+                  Show
                 </Button>
               )}
               <Button variant="danger" onClick={() => setConfirmDeleteOpen(true)}>
@@ -310,7 +301,7 @@ export function WorkshopDetailPage() {
         danger
         onConfirm={() => {
           setConfirmDeleteOpen(false);
-          performAdminAction('delete');
+          performManageAction('delete');
         }}
         onCancel={() => setConfirmDeleteOpen(false)}
       />

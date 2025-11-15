@@ -813,9 +813,9 @@ export function EditorPage() {
       {/* Publish Modal */}
       {publishOpen && (
         <>
-          <div className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-xl" onClick={() => setPublishOpen(false)} />
-          <div className="fixed inset-0 z-[210] flex items-center justify-center p-4">
-            <Card className="w-full max-w-xl">
+          <div className="fixed top-0 left-0 right-0 bottom-0 w-screen h-screen z-[200] bg-black/60 backdrop-blur-xl" onClick={() => setPublishOpen(false)} />
+          <div className="fixed top-0 left-0 right-0 bottom-0 w-screen h-screen z-[210] flex items-center justify-center p-4 pointer-events-none">
+            <Card className="w-full max-w-xl pointer-events-auto">
               <div className="flex items-center justify-between mb-3">
                 <div className="text-lg font-semibold">Publish to Workshop</div>
                 <button className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center" onClick={() => setPublishOpen(false)}>
@@ -897,9 +897,9 @@ export function EditorPage() {
       {/* Update Modal */}
       {updateOpen && (
         <>
-          <div className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-xl" onClick={() => setUpdateOpen(false)} />
-          <div className="fixed inset-0 z-[210] flex items-center justify-center p-4">
-            <Card className="w-full max-w-xl">
+          <div className="fixed top-0 left-0 right-0 bottom-0 w-screen h-screen z-[200] bg-black/60 backdrop-blur-xl" onClick={() => setUpdateOpen(false)} />
+          <div className="fixed top-0 left-0 right-0 bottom-0 w-screen h-screen z-[210] flex items-center justify-center p-4 pointer-events-none">
+            <Card className="w-full max-w-xl pointer-events-auto">
               <div className="flex items-center justify-between mb-3">
                 <div className="text-lg font-semibold">Update Publication</div>
                 <button className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center" onClick={() => setUpdateOpen(false)}>

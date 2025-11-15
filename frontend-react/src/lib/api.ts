@@ -381,6 +381,26 @@ class ApiClient {
       method: 'POST',
     });
   }
+
+  // Admin: Hide/Unhide Workshop profile
+  async hideWorkshopProfile(id: string): Promise<{ profile: WorkshopProfileType }> {
+    return this.request<{ profile: WorkshopProfileType }>(`/api/workshop/${id}/hide`, {
+      method: 'POST',
+    });
+  }
+
+  async unhideWorkshopProfile(id: string): Promise<{ profile: WorkshopProfileType }> {
+    return this.request<{ profile: WorkshopProfileType }>(`/api/workshop/${id}/unhide`, {
+      method: 'POST',
+    });
+  }
+
+  // Admin: Delete Workshop profile (soft delete)
+  async deleteWorkshopProfile(id: string): Promise<void> {
+    return this.request<void>(`/api/workshop/${id}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 export const api = new ApiClient();

@@ -205,9 +205,12 @@ All subsequent blocks constitute this mandatory guide.` },
   const handleDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
 
+    const actualSourceIndex = profiles.length - 1 - result.source.index;
+    const actualDestIndex = profiles.length - 1 - result.destination.index;
+
     const items = Array.from(profiles);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
+    const [reorderedItem] = items.splice(actualSourceIndex, 1);
+    items.splice(actualDestIndex, 0, reorderedItem);
 
     setProfiles(items);
     await api.updateProfileOrder(items.map((p) => p._id));

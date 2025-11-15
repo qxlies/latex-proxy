@@ -294,15 +294,20 @@ router.put('/:id/update', auth, async (req, res) => {
 });
 
 /**
- * POST /api/workshop/:id/hide (admin)
+ * POST /api/workshop/:id/hide (owner or admin)
  */
 router.post('/:id/hide', auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId);
-    if (!user || !user.isAdmin) return res.status(403).json({ msg: 'Forbidden' });
-
     const wp = await WorkshopProfile.findById(req.params.id);
     if (!wp) return res.status(404).json({ msg: 'Not found' });
+
+    const isAdmin = !!(user && user.isAdmin);
+    const isOwner = wp.ownerId.toString() === req.user.userId;
+
+    if (!isAdmin && !isOwner) {
+      return res.status(403).json({ msg: 'Forbidden' });
+    }
 
     wp.visibility = 'hidden';
     await wp.save();
@@ -314,15 +319,20 @@ router.post('/:id/hide', auth, async (req, res) => {
 });
 
 /**
- * POST /api/workshop/:id/unhide (admin)
+ * POST /api/workshop/:id/unhide (owner or admin)
  */
 router.post('/:id/unhide', auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId);
-    if (!user || !user.isAdmin) return res.status(403).json({ msg: 'Forbidden' });
-
     const wp = await WorkshopProfile.findById(req.params.id);
     if (!wp) return res.status(404).json({ msg: 'Not found' });
+
+    const isAdmin = !!(user && user.isAdmin);
+    const isOwner = wp.ownerId.toString() === req.user.userId;
+
+    if (!isAdmin && !isOwner) {
+      return res.status(403).json({ msg: 'Forbidden' });
+    }
 
     wp.visibility = 'public';
     await wp.save();
@@ -334,16 +344,21 @@ router.post('/:id/unhide', auth, async (req, res) => {
 });
 
 /**
- * DELETE /api/workshop/:id (admin)
+ * DELETE /api/workshop/:id (owner or admin)
  * Soft-delete by marking as 'deleted'
  */
 router.delete('/:id', auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId);
-    if (!user || !user.isAdmin) return res.status(403).json({ msg: 'Forbidden' });
-
     const wp = await WorkshopProfile.findById(req.params.id);
     if (!wp) return res.status(404).json({ msg: 'Not found' });
+
+    const isAdmin = !!(user && user.isAdmin);
+    const isOwner = wp.ownerId.toString() === req.user.userId;
+
+    if (!isAdmin && !isOwner) {
+      return res.status(403).json({ msg: 'Forbidden' });
+    }
 
     wp.visibility = 'deleted';
     await wp.save();
