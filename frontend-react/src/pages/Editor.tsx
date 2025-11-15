@@ -357,8 +357,8 @@ export function EditorPage() {
                                 ? 'bg-accent-1/10 border-accent-1/40'
                                 : tab.enabled
                                 ? 'bg-white/5 border-white/14 hover:bg-white/8 cursor-pointer'
-                                : 'bg-white/3 border-white/10 opacity-60 cursor-pointer'
-                            }`}
+                                : 'bg-white/3 border-white/20 cursor-pointer'
+                            } ${!tab.enabled ? 'border-dashed' : 'border-solid'}`}
                           >
                             <div className="p-3">
                               <div className="flex items-center gap-2 mb-2">
@@ -374,7 +374,9 @@ export function EditorPage() {
                                 {/* Role Badge */}
                                 <span
                                   className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 ${
-                                    tab.content === '{chat_history}'
+                                    !tab.enabled
+                                      ? 'bg-white/8 border border-white/20 text-white/50'
+                                      : tab.content === '{chat_history}'
                                       ? 'bg-yellow-500/25 border border-yellow-500/50 text-yellow-400'
                                       : tab.content.includes('{lorebooks}')
                                       ? 'bg-pink-500/25 border border-pink-500/50 text-pink-400'
@@ -399,12 +401,12 @@ export function EditorPage() {
                                 </span>
 
                                 {/* Title */}
-                                <span className="flex-1 font-medium text-sm truncate">
+                                <span className={`flex-1 font-medium text-sm truncate ${!tab.enabled ? (selectedTabId === tab.id ? 'text-white/80' : 'text-white/50') : ''}`}>
                                   {tab.title}
                                 </span>
 
                                 {/* Token Count */}
-                                <span className="text-xs text-white/60 flex-shrink-0">
+                                <span className={`text-xs flex-shrink-0 ${!tab.enabled ? (selectedTabId === tab.id ? 'text-white/50' : 'text-white/40') : 'text-white/60'}`}>
                                   {tokenCount(tab.content)}
                                 </span>
                               </div>
@@ -469,7 +471,7 @@ export function EditorPage() {
                 )}
               </div>
 
-              <div className="space-y-4 overflow-y-auto pr-1 custom-scrollbar">
+              <div className="flex-1 min-h-0 flex flex-col overflow-hidden gap-3">
                 {/* Role & Title */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -528,7 +530,7 @@ export function EditorPage() {
                 </div>
 
                 {/* Content */}
-                <div>
+                <div className="flex flex-col min-h-0 flex-1">
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-xs text-white/60 font-medium">
                       Content
@@ -542,7 +544,7 @@ export function EditorPage() {
                     onChange={(e) => handleContentChange(e.target.value)}
                     readOnly={isProtectedTab}
                     placeholder="Enter tab content..."
-                    className="input min-h-[300px] font-mono text-sm resize-y disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="input flex-1 min-h-0 max-h-full font-mono text-sm resize-none disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                   {isProtectedTab && (
                     <p className="mt-2 text-xs text-yellow-400 flex items-center gap-1">
@@ -553,11 +555,11 @@ export function EditorPage() {
                 </div>
 
                 {/* Placeholders Help */}
-                <details className="bg-white/5 border border-white/14 rounded-xl p-4">
-                  <summary className="cursor-pointer font-medium text-sm flex items-center gap-2">
+                <div className="mt-auto bg-white/5 border border-white/14 rounded-xl p-4 flex-shrink-0">
+                  <div className="font-medium text-sm flex items-center gap-2">
                     <Icon icon="lucide:help-circle" className="w-4 h-4" />
                     Available Placeholders
-                  </summary>
+                  </div>
                   <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
                     {[
                       '{bot_persona}',
@@ -577,7 +579,7 @@ export function EditorPage() {
                       </code>
                     ))}
                   </div>
-                </details>
+                </div>
               </div>
             </Card>
           ) : (
