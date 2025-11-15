@@ -472,8 +472,12 @@ router.post('/sync-linked/:profileId', auth, async (req, res) => {
       enabled: !!s.enabled,
       isPinned: false,
     }));
+    // Insert specials in DESC order of original index so earlier inserts don't shift later targets
+    const specialsSorted = [...specialTabs].sort(
+      (a, b) => (b.__originalIndex ?? 0) - (a.__originalIndex ?? 0)
+    );
 
-    for (const st of specialTabs) {
+    for (const st of specialsSorted) {
       const insertAt = Math.min(st.__originalIndex, newTabs.length);
       newTabs.splice(insertAt, 0, {
         id: st.id || uuidv4(),
