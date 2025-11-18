@@ -612,7 +612,7 @@ All subsequent blocks constitute this mandatory guide.` },
                     <div className="flex items-center gap-3">
                       <Icon icon="lucide:route" className="w-5 h-5 text-green-400" />
                       <div className="flex-1">
-                        <div className="font-semibold">GoRouter</div>
+                        <div className="font-semibold">rout.my</div>
                         <div className="text-xs text-white/60">
                           Free plan with 500k tok/day
                         </div>

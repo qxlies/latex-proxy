@@ -120,7 +120,7 @@ function ChangelogPage() {
     { version: '1.0.0', date: '2025-11-13', notes: [
       '🎉 Initial Release',
       'Modular prompt system with tabs',
-      'Support for multiple providers (GoRouter, OpenRouter, AI Studio, Custom)',
+      'Support for multiple providers (rout.my, OpenRouter, AI Studio, Custom)',
       'Profile system with Import/Export',
       'Request logging and analysis of all blocks',
       'Placeholders for dynamic data substitution'
@@ -224,7 +224,7 @@ function FAQPage() {
 
       {/* GoRouter Promo */}
       <div className="panel">
-        <h3 className="text-lg font-semibold mb-2">GoRouter: Fast and Generous</h3>
+        <h3 className="text-lg font-semibold mb-2">rout.my: Fast and Generous</h3>
         <ul className="list-disc pl-6 space-y-1 text-sm text-white/80">
           <li>🎉 Free plan: 500,000 tokens per day</li>
           <li>🚀 Access to top models: Claude, OpenAI, Gemini and others via OpenRouter</li>

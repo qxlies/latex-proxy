@@ -241,7 +241,7 @@ app.post('/v1/chat/completions', authMiddleware, async (req, res) => {
           break;
         
         case 'gorouter':
-          proxyEndpoint = 'https://gorouter.bobots.me/v1';
+          proxyEndpoint = 'https://api.rout.my/v1';
           proxyApiKey = provider.apiKey;
           model = provider.model;
           break;

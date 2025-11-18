@@ -12,7 +12,7 @@ const providers = [
   {
     type: 'gorouter' as ProviderType,
     icon: 'lucide:route',
-    name: 'GoRouter',
+    name: 'rout.my',
     description: 'By Latex • 500k tok/day • Claude, OpenAI & more',
     badge: 'FREE PLAN',
     color: 'from-green-500 to-emerald-500',
@@ -85,7 +85,7 @@ export function ProvidersPage() {
 
   const fetchOpenaiModels = async () => {
     try {
-      const response = await fetch('https://gorouter.bobots.me/v1/models');
+      const response = await fetch('https://api.rout.my/v1/models');
       const data = await response.json();
       setOpenrouterModels(data.data || [])
     } catch (err) {
@@ -287,7 +287,7 @@ export function ProvidersPage() {
                 className="masked-input"
                 value={settings.gorouter?.apiKey || ''}
                 onChange={(e) => handleSettingChange('gorouter', 'apiKey', e.target.value)}
-                placeholder="Enter your GoRouter API key"
+                placeholder="Enter your rout.my API key"
                 autoComplete="new-password"
                 autoCorrect="off"
                 spellCheck={false}
