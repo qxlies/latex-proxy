@@ -49,6 +49,36 @@ router.put('/me/logging', async (req, res) => {
    }
 });
 
+router.put('/me/password', async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+        return res.status(400).json({ msg: 'Please provide current and new password' });
+    }
+
+    try {
+        const user = await User.findById(req.user.userId);
+        if (!user) {
+            return res.status(404).send('User not found');
+        }
+
+        const isMatch = await user.comparePassword(currentPassword);
+        if (!isMatch) {
+            return res.status(401).json({ msg: 'Invalid current password' });
+        }
+
+        if (newPassword.length < 6) {
+             return res.status(400).json({ msg: 'Password must be at least 6 characters' });
+        }
+
+        user.password = newPassword;
+        await user.save();
+
+        res.status(200).json({ msg: 'Password updated successfully' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 router.put('/me/profile-order', async (req, res) => {
    const { profileOrder } = req.body;
    try {

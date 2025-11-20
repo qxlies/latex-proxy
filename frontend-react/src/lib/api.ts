@@ -117,6 +117,13 @@ class ApiClient {
     });
   }
 
+  async updatePassword(currentPassword: string, newPassword: string): Promise<void> {
+    return this.request<void>('/api/users/me/password', {
+      method: 'PUT',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+  }
+
   // Profile endpoints
   async getProfiles(): Promise<ProfilesResponse> {
     return this.request<ProfilesResponse>('/api/profiles');
