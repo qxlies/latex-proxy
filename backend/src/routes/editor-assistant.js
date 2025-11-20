@@ -293,7 +293,7 @@ Tab content here
         'Authorization': `Bearer ${process.env.API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'x-ai/grok-4-fast',
+        model: 'x-ai/grok-4.1-fast',
         messages,
         temperature: 0.7,
         max_tokens: 4096,

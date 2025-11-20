@@ -417,7 +417,7 @@ exact text 2
             'Authorization': `Bearer ${apiKey}`
            },
            body: JSON.stringify({
-               model: 'x-ai/grok-4-fast',
+               model: 'x-ai/grok-4.1-fast',
                messages: [
                    {
                        role: 'system',
