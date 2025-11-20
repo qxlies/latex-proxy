@@ -182,66 +182,6 @@ export function DashboardPage() {
         </Card>
       </motion.div>
 
-       {/* Security Settings */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.35 }}
-      >
-          <Card>
-              <CardHeader>
-                  <CardTitle>Security</CardTitle>
-                  <CardDescription>Change your account password</CardDescription>
-              </CardHeader>
-              <CardContent>
-                  <form onSubmit={handlePasswordChange} className="space-y-4 max-w-md">
-                      <Input
-                          label="Current Password"
-                          type="password"
-                          value={passwordData.currentPassword}
-                          onChange={(e) => setPasswordData({...passwordData, currentPassword: e.target.value})}
-                          required
-                      />
-                      <Input
-                          label="New Password"
-                          type="password"
-                          value={passwordData.newPassword}
-                          onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
-                          required
-                      />
-                      <Input
-                          label="Confirm New Password"
-                          type="password"
-                          value={passwordData.confirmPassword}
-                          onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
-                          required
-                      />
-                      
-                      {passwordError && (
-                          <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm flex items-center gap-2">
-                              <Icon icon="lucide:alert-circle" className="w-4 h-4" />
-                              {passwordError}
-                          </div>
-                      )}
-
-                      {passwordSuccess && (
-                          <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 text-sm flex items-center gap-2">
-                              <Icon icon="lucide:check-circle" className="w-4 h-4" />
-                              {passwordSuccess}
-                          </div>
-                      )}
-
-                      <Button 
-                          type="submit" 
-                          isLoading={isChangingPassword}
-                      >
-                          Update Password
-                      </Button>
-                  </form>
-              </CardContent>
-          </Card>
-      </motion.div>
-
       {/* Current Profile */}
       {currentProfile && (
         <motion.div
@@ -342,6 +282,66 @@ export function DashboardPage() {
             </div>
           </CardContent>
         </Card>
+      </motion.div>
+
+      {/* Security Settings */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.35 }}
+      >
+          <Card>
+              <CardHeader>
+                  <CardTitle>Security</CardTitle>
+                  <CardDescription>Change your account password</CardDescription>
+              </CardHeader>
+              <CardContent>
+                  <form onSubmit={handlePasswordChange} className="space-y-4 max-w-md">
+                      <Input
+                          label="Current Password"
+                          type="password"
+                          value={passwordData.currentPassword}
+                          onChange={(e) => setPasswordData({...passwordData, currentPassword: e.target.value})}
+                          required
+                      />
+                      <Input
+                          label="New Password"
+                          type="password"
+                          value={passwordData.newPassword}
+                          onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
+                          required
+                      />
+                      <Input
+                          label="Confirm New Password"
+                          type="password"
+                          value={passwordData.confirmPassword}
+                          onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
+                          required
+                      />
+                      
+                      {passwordError && (
+                          <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm flex items-center gap-2">
+                              <Icon icon="lucide:alert-circle" className="w-4 h-4" />
+                              {passwordError}
+                          </div>
+                      )}
+
+                      {passwordSuccess && (
+                          <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 text-sm flex items-center gap-2">
+                              <Icon icon="lucide:check-circle" className="w-4 h-4" />
+                              {passwordSuccess}
+                          </div>
+                      )}
+
+                      <Button 
+                          type="submit" 
+                          isLoading={isChangingPassword}
+                      >
+                          Update Password
+                      </Button>
+                  </form>
+              </CardContent>
+          </Card>
       </motion.div>
     </div>
   );
