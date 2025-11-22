@@ -44,7 +44,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       'data-1p-ignore': (props as any)?.['data-1p-ignore'] ?? (useMaskedText ? 'true' : undefined),
       'aria-autocomplete': (props as any)?.['aria-autocomplete'] ?? (useMaskedText ? 'none' : undefined),
      
-      inputMode: props.inputMode ?? (useMaskedText ? 'text' : 'none'),
+      inputMode: props.inputMode ?? (useMaskedText ? 'text' : undefined),
       
       role: (props as any)?.role ?? (useMaskedText ? 'presentation' : undefined),
       'aria-label': props['aria-label'] ?? (useMaskedText ? 'API Key' : undefined),
